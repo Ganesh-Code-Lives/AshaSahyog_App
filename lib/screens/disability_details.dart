@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 
-class DisabilityDetails extends StatefulWidget {
-  final Function(Map<String, dynamic>) onComplete;
+import 'home_screen.dart';
 
-  const DisabilityDetails({super.key, required this.onComplete});
+class DisabilityDetails extends StatefulWidget {
+  const DisabilityDetails({super.key});
 
   @override
   State<DisabilityDetails> createState() => _DisabilityDetailsState();
@@ -38,20 +39,33 @@ class _DisabilityDetailsState extends State<DisabilityDetails> {
   }
 
   void _handleContinue() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasCompletedProfile', true);
-    await prefs.setString('disabilityType', _disabilityType);
-    await prefs.setString('disabilityPercentage', _percentageController.text);
-    await prefs.setString('certificateNumber', _certificateController.text);
-    await prefs.setStringList('assistiveDevices', _selectedDevices);
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        await Supabase.instance.client.from('profiles').update({
+          'has_disability': _hasDisability,
+          'disability_type': _disabilityType,
+          'disability_percentage': _percentageController.text,
+          'certificate_number': _certificateController.text,
+          'assistive_devices': _selectedDevices,
+          'has_completed_profile': true,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        }).eq('id', user.id);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving disability details: $e")),
+        );
+        return;
+      }
+    }
     
-    widget.onComplete({
-      'hasDisability': _hasDisability,
-      'disabilityType': _disabilityType,
-      'disabilityPercentage': _percentageController.text,
-      'certificateNumber': _certificateController.text,
-      'assistiveDevices': _selectedDevices,
-    });
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (route) => false,
+    );
   }
 
   @override

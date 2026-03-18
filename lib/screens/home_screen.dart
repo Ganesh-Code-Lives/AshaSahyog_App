@@ -12,13 +12,12 @@ import 'profile.dart';
 import 'support.dart';
 import 'emergency_sos.dart';
 import '../models/user_models.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'intro_screen.dart';
+import 'personal_details.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Map<String, dynamic>? personalData;
-  final Map<String, dynamic>? disabilityData;
-  final VoidCallback onLogout;
-
-  const HomeScreen({super.key, this.personalData, this.disabilityData, required this.onLogout});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -46,18 +45,58 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const IntroScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    try {
+      final profileData = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (profileData == null) {
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => PersonalDetails(email: user.email ?? '')),
+          (route) => false,
+        );
+        return;
+      }
+
+      setState(() {
+        fullName = profileData['full_name'] ?? 'User';
+        phoneNumber = profileData['phone'] ?? '';
+        email = profileData['email'] ?? '';
+        dateOfBirth = profileData['dob'] ?? '';
+        gender = profileData['gender'] ?? '';
+        address = profileData['address'] ?? '';
+        disabilityType = profileData['disability_type'] ?? '';
+        disabilityPercentage = profileData['disability_percentage'] ?? '';
+        certificateNumber = profileData['certificate_number'] ?? '';
+        
+        var rawDevices = profileData['assistive_devices'];
+        if (rawDevices is List) {
+          assistiveDevices = rawDevices.map((e) => e.toString()).toList();
+        } else {
+          assistiveDevices = [];
+        }
+      });
+    } catch (e) {
+      print("Failed to fetch profile: $e");
+    }
+
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      fullName = prefs.getString('fullName') ?? 'User';
-      phoneNumber = prefs.getString('phoneNumber') ?? '';
-      email = prefs.getString('email') ?? '';
-      dateOfBirth = prefs.getString('dateOfBirth') ?? '';
-      gender = prefs.getString('gender') ?? '';
-      address = prefs.getString('address') ?? '';
-      disabilityType = prefs.getString('disabilityType') ?? '';
-      disabilityPercentage = prefs.getString('disabilityPercentage') ?? '';
-      certificateNumber = prefs.getString('certificateNumber') ?? '';
-      assistiveDevices = prefs.getStringList('assistiveDevices') ?? [];
       _profileImageBase64 = prefs.getString('profileImageBase64');
     });
   }
@@ -69,6 +108,18 @@ class _HomeScreenState extends State<HomeScreen> {
      setState(() {
        currentScreen = screen;
      });
+  }
+
+  void _handleLogout() async {
+    // Only session is destroyed, profile completeness flag and DB state strictly persists
+    await Supabase.instance.client.auth.signOut();
+    
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const IntroScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -106,7 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentScreen == 'profile') {
       return Profile(
         onBack: () => _navigate('home'),
-        onLogout: widget.onLogout,
+        onLogout: _handleLogout,
+        onProfileUpdated: _loadProfile, // Wire real-time refresh correctly!
         personalData: PersonalDetailsData(
           fullName: fullName,
           email: email,

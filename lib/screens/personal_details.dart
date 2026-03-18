@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 
-class PersonalDetails extends StatefulWidget {
-  final Function(Map<String, dynamic>) onComplete;
+import 'disability_details.dart';
 
-  const PersonalDetails({super.key, required this.onComplete});
+class PersonalDetails extends StatefulWidget {
+  final String? email;
+
+  const PersonalDetails({super.key, this.email});
 
   @override
   State<PersonalDetails> createState() => _PersonalDetailsState();
@@ -23,6 +26,14 @@ class _PersonalDetailsState extends State<PersonalDetails> {
   // To update UI on change to enable/disable button
   void _updateState() {
      setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.email != null) {
+      _emailController.text = widget.email!;
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -47,20 +58,30 @@ class _PersonalDetailsState extends State<PersonalDetails> {
 
   void _handleContinue() async {
     if (_isValid) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('fullName', _fullNameController.text);
-      await prefs.setString('email', _emailController.text);
-      await prefs.setString('dateOfBirth', _dateOfBirthController.text);
-      await prefs.setString('gender', _gender);
-      await prefs.setString('address', _addressController.text);
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        try {
+          // Update core profile info - explicitly preventing arbitrary inserts
+          await Supabase.instance.client.from('profiles').update({
+            'full_name': _fullNameController.text,
+            'dob': _dateOfBirthController.text,
+            'gender': _gender,
+            'address': _addressController.text,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }).eq('id', user.id);
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error saving profile: $e")),
+          );
+          return;
+        }
+      }
 
-      widget.onComplete({
-        'fullName': _fullNameController.text,
-        'email': _emailController.text,
-        'dateOfBirth': _dateOfBirthController.text,
-        'gender': _gender,
-        'address': _addressController.text,
-      });
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DisabilityDetails()),
+      );
     }
   }
 

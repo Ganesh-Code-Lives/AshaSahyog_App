@@ -3,74 +3,53 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthService {
   final supabase = Supabase.instance.client;
 
-  // Mock Mode for testing without a real backend
-  // Set this to false when your Supabase Edge Functions are deployed
-  final bool useMockMode = false;
-
   // Singleton pattern
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
 
-  Future<bool> sendOtp(String phone) async {
-    if (useMockMode) {
-      print("MOCK MODE: Sending OTP to $phone");
-      await Future.delayed(const Duration(seconds: 1));
-      return true;
-    }
-
+  Future<AuthResponse> signUp(String email, String password) async {
     try {
-      print("Attempting to invoke 'send-otp' function for phone: $phone");
-      print("Calling send-otp function...");
-      
-      final response = await supabase.functions.invoke(
-        'send-otp',
-        body: {'phone': phone},
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
       );
-
-      print("Response status: ${response.status}");
-
-      if (response.status >= 200 && response.status < 300) {
-        return true;
-      } else {
-        print("Send OTP Error status: ${response.status}");
-        return false;
-      }
-    } on FunctionException catch (e) {
-      print("Supabase FunctionException: ${e.toString()}");
-      return false;
+      return response;
+    } on AuthException catch (e) {
+      print("Supabase AuthException: ${e.message}");
+      rethrow;
     } catch (e) {
-      print("General Send OTP Exception: $e");
-      return false;
+      print("General Sign Up Exception: $e");
+      rethrow;
     }
   }
 
-  Future<bool> verifyOtp(String phone, String code) async {
-    if (useMockMode) {
-      print("MOCK MODE: Verifying OTP $code for $phone");
-      await Future.delayed(const Duration(seconds: 1));
-      return code == "123456"; // Default mock OTP
-    }
-
+  Future<AuthResponse> signInWithPassword(String email, String password) async {
     try {
-      final response = await supabase.functions.invoke(
-        'verify-otp',
-        body: {
-          'phone': phone,
-          'code': code,
-        },
+      final response = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
       );
-
-      if (response.status >= 200 && response.status < 300) {
-        // Assume Twilio Verify returns status: approved
-        return response.data['status'] == 'approved';
-      } else {
-        print("Verify OTP Error: ${response.data}");
-        return false;
-      }
+      return response;
+    } on AuthException catch (e) {
+      print("Supabase AuthException: ${e.message}");
+      rethrow;
     } catch (e) {
-      print("Verify OTP Exception: $e");
-      return false;
+      print("General Login Exception: $e");
+      rethrow;
     }
+  }
+
+  Future<void> signOut() async {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      print("General Logout Exception: $e");
+      rethrow;
+    }
+  }
+
+  User? getCurrentUser() {
+    return supabase.auth.currentUser;
   }
 }

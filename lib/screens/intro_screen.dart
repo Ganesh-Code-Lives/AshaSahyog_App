@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 
 class IntroScreen extends StatefulWidget {
-  final VoidCallback onStart;
-
-  const IntroScreen({super.key, required this.onStart});
+  const IntroScreen({super.key});
 
   @override
   State<IntroScreen> createState() => _IntroScreenState();
@@ -255,7 +254,12 @@ class _IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: widget.onStart,
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,

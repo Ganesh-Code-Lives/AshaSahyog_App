@@ -1,0 +1,31 @@
+﻿Analyzing home_screen.dart...                                   
+
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\screens\home_screen.dart:2:8 - unnecessary_import
+  error - The method 'PersonalDetails' isn't defined for the type '_HomeScreenState' - lib\screens\home_screen.dart:69:45 - undefined_method
+   info - Don't invoke 'print' in production code - lib\screens\home_screen.dart:94:7 - avoid_print
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\home_screen.dart:164:24 - prefer_is_empty
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\home_screen.dart:169:26 - prefer_is_empty
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\home_screen.dart:171:23 - prefer_is_empty
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\home_screen.dart:172:30 - prefer_is_empty
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\home_screen.dart:175:17 - prefer_is_empty
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:372:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:399:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\home_screen.dart:402:75 - deprecated_member_use
+
+flutter : 11 issues found. 
+(ran in 2.5s)
+At line:1 char:1
++ flutter analyze 
+lib/screens/home_screen.dart 
+> home_errors.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (11 issu  
+  es found. (ran in 2.5s):   
+ String) [], RemoteExcept    
+ion
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
