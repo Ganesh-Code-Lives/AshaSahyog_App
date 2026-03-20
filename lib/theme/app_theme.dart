@@ -8,7 +8,7 @@ class AppTheme {
   static const Color surface = Colors.white;
   static const Color textMain = Color(0xFF111111);
   static const Color textSecondary = Color(0xFF6B7280);
-  static const Color border = Color(0xFFE9D5FF); // Soft purple border
+  static const Color border = Color(0xFFE4DCFF); // Soft purple border
   static const Color inputBorder = Color(0xFFE5E7EB); // Subtle input border
   static const Color error = Color(0xFFDC2626);
   static const Color success = Color(0xFF10B981);

@@ -24,8 +24,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String currentScreen = 'home'; 
-  
+  String currentScreen = 'home';
+
   String fullName = 'User';
   String phoneNumber = '';
   String email = '';
@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
         disabilityType = profileData['disability_type'] ?? '';
         disabilityPercentage = profileData['disability_percentage'] ?? '';
         certificateNumber = profileData['certificate_number'] ?? '';
-        
+
         var rawDevices = profileData['assistive_devices'];
         if (rawDevices is List) {
           assistiveDevices = rawDevices.map((e) => e.toString()).toList();
@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
     } catch (e) {
-      print("Failed to fetch profile: $e");
+      debugPrint("Failed to fetch profile: $e");
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -102,18 +102,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigate(String screen) {
-     if (screen == 'home') {
-       _loadProfile();
-     }
-     setState(() {
-       currentScreen = screen;
-     });
+    if (screen == 'home') {
+      _loadProfile();
+    }
+    setState(() {
+      currentScreen = screen;
+    });
   }
 
   void _handleLogout() async {
-    // Only session is destroyed, profile completeness flag and DB state strictly persists
     await Supabase.instance.client.auth.signOut();
-    
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
@@ -124,32 +122,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Basic scaffold for Home, we can expand later for other screens
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Center(
         child: Container(
-           constraints: const BoxConstraints(maxWidth: 480),
-           // Mimic the app-screen class
-           margin: const EdgeInsets.symmetric(horizontal: 0), 
-           decoration: const BoxDecoration(
-             color: AppTheme.background,
-           ),
-           child: Column(
-             children: [
-               Expanded(
-                 child: _buildBody(),
-               ),
-               BottomNav(active: currentScreen, onNavigate: _navigate),
-             ],
-           ),
+          constraints: const BoxConstraints(maxWidth: 480),
+          margin: const EdgeInsets.symmetric(horizontal: 0),
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: _buildBody(),
+              ),
+              BottomNav(active: currentScreen, onNavigate: _navigate),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBody() {
-     // TODO: Implement other screens
     if (currentScreen == 'schemes') return SchemesFinder(onBack: () => _navigate('home'));
     if (currentScreen == 'hospitals') return HospitalLocator(onBack: () => _navigate('home'));
     if (currentScreen == 'documents') return DocumentVault(onBack: () => _navigate('home'));
@@ -158,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Profile(
         onBack: () => _navigate('home'),
         onLogout: _handleLogout,
-        onProfileUpdated: _loadProfile, // Wire real-time refresh correctly!
+        onProfileUpdated: _loadProfile,
         personalData: PersonalDetailsData(
           fullName: fullName,
           email: email,
@@ -179,189 +174,264 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentScreen == 'support') return Support(onBack: () => _navigate('home'));
     if (currentScreen == 'sos') return EmergencySOS(onBack: () => _navigate('home'));
 
-     // Default: Home Dashboard
-     return SingleChildScrollView(
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-             // Header
-             Container(
-               width: double.infinity,
-               decoration: const BoxDecoration(
-                 color: AppTheme.purpleLight,
-                 border: Border(bottom: BorderSide(color: AppTheme.border, width: 2)),
-               ),
-               child: SafeArea(
-                 bottom: false,
-                 child: Padding(
-                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-                     child: Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                       children: [
-                         Expanded(
-                           child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                               const SizedBox(height: 18),
-                               Text(
-                                 'Welcome Back,',
-                                 style: TextStyle(
-                                   color: Color(0xFF6E29DA), // Branded Purple
-                                   fontSize: 16,
-                                   fontWeight: FontWeight.bold,
-                                 ),
-                               ),
-                               const SizedBox(height: 2),
-                               Text(
-                                 fullName,
-                                 style: const TextStyle(
-                                   fontSize: 18, 
-                                   fontWeight: FontWeight.bold, 
-                                   color: Color(0xFF1F2937), // Dark Charcoal
-                                 ),
-                                 maxLines: 2,
-                                 overflow: TextOverflow.ellipsis,
-                               ),
-                               const SizedBox(height: 3),
-                                const Text(
-                                 'How can we help you today?',
-                                 style: TextStyle(
-                                   color: Color(0xFF9CA3AF), // Light Grey
-                                   fontSize: 13,
-                                 ),
-                               ),
-                             ],
-                           ),
-                         ),
-                         InkWell(
-                           onTap: () => _navigate('profile'),
-                           borderRadius: BorderRadius.circular(24),
-                           child: Container(
-                             width: 48,
-                             height: 48,
-                             decoration: BoxDecoration(
-                               color: const Color(0xFFF3E8FF), // Very light purple bg
-                               shape: BoxShape.circle,
-                               border: Border.all(color: const Color(0xFFE9D5FF), width: 1),
-                             ),
-                             child: ClipOval(
-                               clipBehavior: Clip.hardEdge,
-                               child: _profileImageBase64 != null
-                                    ? Image.memory(base64Decode(_profileImageBase64!), fit: BoxFit.cover, width: 48, height: 48)
-                                    : const Icon(Icons.person, color: Color(0xFF7C3AED), size: 24),
-                             ),
-                           ),
-                         ),
-                       ],
-                     ),
-                   ),
-                 ),
-               ),
-
-           Padding(
-             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-             child: Column(
-               children: [
-                 // Quick Actions Grid
-                  GridView(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      mainAxisExtent: 140,
+    // Default: Home Dashboard
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── WELCOME PANEL ───────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            color: const Color(0xFF7C3AED),
+            child: Stack(
+              children: [
+                // Decorative circle — top right
+                Positioned(
+                  top: -50,
+                  right: -40,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x12FFFFFF),
                     ),
-                   children: [
-                     _buildQuickActionCard(
-                       'Find\nSchemes',
-                       Icons.description,
-                       const Color(0xFFC4B5FD), // Light Purple
-                       AppTheme.primary,
-                       () => _navigate('schemes'),
-                     ),
-                     _buildQuickActionCard(
-                       'Nearby\nHospitals',
-                       Icons.add,
-                       const Color(0xFFA7F3D0), // Light Green
-                       const Color(0xFF059669), // Green
-                       () => _navigate('hospitals'),
-                     ),
-                     _buildQuickActionCard(
-                       'My\nDocuments',
-                       Icons.folder,
-                       const Color(0xFFBAE6FD), // Light Blue
-                       const Color(0xFF0284C7), // Blue
-                       () => _navigate('documents'),
-                     ),
-                     _buildQuickActionCard(
-                       'My\nReminders',
-                       Icons.notifications,
-                       const Color(0xFFFBCFE8), // Light Pink
-                       const Color(0xFFBE185D), // Pink
-                       () => _navigate('reminders'),
-                     ),
-                   ],
-                 ),
+                  ),
+                ),
+                // Decorative circle — bottom left
+                Positioned(
+                  bottom: -25,
+                  left: -20,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x0DFFFFFF),
+                    ),
+                  ),
+                ),
+                // Content
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Welcome Back,',
+                                style: TextStyle(
+                                  color: Color(0xFFC4B5FD),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                fullName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 5),
+                              const Text(
+                                'How can we help you today?',
+                                style: TextStyle(
+                                  color: Color(0xA6FFFFFF),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: () => _navigate('profile'),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0x2EFFFFFF),
+                              border: Border.all(
+                                color: const Color(0x4DFFFFFF),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: ClipOval(
+                              child: _profileImageBase64 != null
+                                  ? Image.memory(
+                                      base64Decode(_profileImageBase64!),
+                                      fit: BoxFit.cover,
+                                      width: 48,
+                                      height: 48,
+                                    )
+                                  : const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ─── BODY PANEL (overlaps header) ────────────────────────────────
+          Transform.translate(
+            offset: const Offset(1, -10),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                child: Column(
+                  children: [
+                    // Quick Actions Grid
+                    GridView(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: 140,
+                      ),
+                      children: [
+                        _buildQuickActionCard(
+                          'Find\nSchemes',
+                          Icons.description,
+                          const Color(0xFFEDE9FE),
+                          AppTheme.primary,
+                          () => _navigate('schemes'),
+                        ),
+                        _buildQuickActionCard(
+                          'Nearby\nHospitals',
+                          Icons.location_on,
+                          const Color(0xFFDCFCE7),
+                          const Color(0XFF15803D),
+                          () => _navigate('hospitals'),
+                        ),
+                        _buildQuickActionCard(
+                          'My\nDocuments',
+                          Icons.folder,
+                          const Color(0xFFDBEAFE),
+                          const Color(0xFF1D4ED8),
+                          () => _navigate('documents'),
+                        ),
+                        _buildQuickActionCard(
+                          'My\nReminders',
+                          Icons.notifications,
+                          const Color(0xFFFDF2FA),
+                          const Color(0xFFBE185D),
+                          () => _navigate('reminders'),
+                        ),
+                      ],
+                    ),
 
-                 const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                 // Today at a Glance
-                 const Align(
-                   alignment: Alignment.centerLeft,
-                   child: Text('Today at a Glance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                 ),
-                 const SizedBox(height: 16),
-                 
-                 _buildGlanceCard(
-                   'Doctor\'s Appointment',
-                   'Today at 2:00 PM',
-                   Icons.calendar_today,
-                   const Color(0xFFC4B5FD),
-                   AppTheme.primary,
-                 ),
-                 const SizedBox(height: 12),
-                 _buildGlanceCard(
-                   'Disability Certificate Renewal',
-                   'Due in 5 days',
-                   Icons.warning,
-                   const Color(0xFFFBCFE8), // Pink
-                   const Color(0xFFBE185D),
-                 ),
+                    // Today at a Glance
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Today at a Glance',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textMain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                 const SizedBox(height: 24),
-                 
-                 // Recommended Schemes
-                 const Align(
-                   alignment: Alignment.centerLeft,
-                   child: Text('Recommended Schemes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                 ),
-                 const SizedBox(height: 16),
-                 SingleChildScrollView(
-                   scrollDirection: Axis.horizontal,
-                   child: Row(
-                     children: [
-                       _buildSchemeCard('Financial Aid Program', 'Provides monthly financial assistance to persons with benchmark disabilities to support their basic needs...', AppTheme.primary),
-                       const SizedBox(width: 12),
-                       _buildSchemeCard('Assistive Devices', 'Offers financial assistance for purchasing durable, advanced, and scientifically designed assistive devices...', AppTheme.success),
-                       const SizedBox(width: 12),
-                       _buildSchemeCard('Concessional Travel Pass', 'Provides concessions on train fares for persons with disabilities across multiple travel classes...', AppTheme.concession),
-                     ],
-                   ),
-                 ),
-               ],
-             ),
-           ),
-         ],
-       ),
-     );
+                    _buildGlanceCard(
+                      'Doctor\'s Appointment',
+                      'Today at 2:00 PM',
+                      Icons.calendar_today,
+                      const Color(0xFFC4B5FD),
+                      AppTheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildGlanceCard(
+                      'Disability Certificate Renewal',
+                      'Due in 5 days',
+                      Icons.warning,
+                      const Color(0xFFFBCFE8),
+                      const Color(0xFFBE185D),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Recommended Schemes
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Recommended Schemes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textMain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildSchemeCard(
+                            'Financial Aid Program',
+                            'Provides monthly financial assistance to persons with benchmark disabilities to support their basic needs...',
+                            AppTheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildSchemeCard(
+                            'Assistive Devices',
+                            'Offers financial assistance for purchasing durable, advanced, and scientifically designed assistive devices...',
+                            AppTheme.success,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildSchemeCard(
+                            'Concessional Travel Pass',
+                            'Provides concessions on train fares for persons with disabilities across multiple travel classes...',
+                            AppTheme.concession,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
+  // All widget builders below are completely unchanged from your original
   Widget _buildQuickActionCard(String title, IconData icon, Color bgColor, Color iconColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-       borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -406,11 +476,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 38, // Force exactly two lines of height
+              height: 38,
               child: Text(
-                title, 
+                title,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold, 
+                  fontWeight: FontWeight.bold,
                   color: AppTheme.textMain,
                   fontSize: 15,
                   height: 1.2,
@@ -435,33 +505,33 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-           Container(
-             width: 40,
-             height: 40,
-             decoration: BoxDecoration(
-               color: bgColor,
-               borderRadius: BorderRadius.circular(8),
-             ),
-             child: Icon(icon, color: iconColor, size: 20),
-           ),
-           const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title, 
-                    style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textMain),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    subtitle, 
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textMain),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -481,7 +551,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
-          Text(description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+          Text(
+            description,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          ),
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: () {},
@@ -490,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
               minimumSize: const Size(double.infinity, 40),
               padding: const EdgeInsets.symmetric(vertical: 8),
             ),
-             child: const Text('Learn More', style: TextStyle(fontSize: 14)),
+            child: const Text('Learn More', style: TextStyle(fontSize: 14)),
           ),
         ],
       ),
