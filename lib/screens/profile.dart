@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../models/user_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'language_selection.dart';
+import 'support.dart';
 
 class Profile extends StatefulWidget {
   final VoidCallback onBack;
@@ -324,6 +326,87 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         );
       }
     }
+  }
+
+  Future<void> _showChangePasswordDialog() async {
+    final pwdCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            titlePadding: const EdgeInsets.only(top: 28, left: 24, right: 24, bottom: 8),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            title: const Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+            content: Form(
+              key: formKey,
+              child: TextFormField(
+                controller: pwdCtrl,
+                obscureText: true,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1F2937)),
+                decoration: InputDecoration(
+                  hintText: 'Enter new password',
+                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF6B7280), size: 20),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
+                ),
+                validator: (v) => v != null && v.length >= 6 ? null : 'Must be at least 6 characters',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600, fontSize: 15)),
+              ),
+              ElevatedButton(
+                onPressed: isSaving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  setState(() => isSaving = true);
+                  try {
+                    await Supabase.instance.client.auth.updateUser(UserAttributes(password: pwdCtrl.text));
+                    if (context.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated successfully')));
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update password.')));
+                    }
+                  } finally {
+                    if (mounted) setState(() => isSaving = false);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: isSaving 
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                    : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+              ),
+            ],
+          );
+        }
+      )
+    );
   }
 
   @override
@@ -686,11 +769,20 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           ),
                           child: Column(
                             children: [
-                              _SettingsTile(icon: Icons.language, color: const Color(0xFF0284C7), bgColor: const Color(0xFFE0F2FE), title: 'Language & Accessibility'),
+                              _SettingsTile(
+                                icon: Icons.language, color: const Color(0xFF0284C7), bgColor: const Color(0xFFE0F2FE), title: 'Language & Accessibility',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LanguageSelection(onComplete: (lang) => Navigator.pop(context)))),
+                              ),
                               Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
-                              _SettingsTile(icon: Icons.lock_outline_rounded, color: const Color(0xFFBE185D), bgColor: const Color(0xFFFCE7F3), title: 'Change Password'),
+                              _SettingsTile(
+                                icon: Icons.lock_outline_rounded, color: const Color(0xFFBE185D), bgColor: const Color(0xFFFCE7F3), title: 'Change Password',
+                                onTap: _showChangePasswordDialog,
+                              ),
                               Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
-                              _SettingsTile(icon: Icons.help_outline_rounded, color: const Color(0xFF059669), bgColor: const Color(0xFFD1FAE5), title: 'Help & Support'),
+                              _SettingsTile(
+                                icon: Icons.help_outline_rounded, color: const Color(0xFF059669), bgColor: const Color(0xFFD1FAE5), title: 'Help & Support',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Support(onBack: () => Navigator.pop(context)))),
+                              ),
                             ],
                           ),
                         ),
@@ -828,8 +920,9 @@ class _SettingsTile extends StatelessWidget {
   final Color color;
   final Color bgColor;
   final String title;
+  final VoidCallback? onTap;
 
-  const _SettingsTile({required this.icon, required this.color, required this.bgColor, required this.title});
+  const _SettingsTile({required this.icon, required this.color, required this.bgColor, required this.title, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -841,7 +934,7 @@ class _SettingsTile extends StatelessWidget {
       ),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
       trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA3AF), size: 20),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }
