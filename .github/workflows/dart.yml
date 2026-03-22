@@ -9,41 +9,33 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      # Checkout code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      # Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # Clean project (important)
       - name: Clean project
         run: flutter clean
 
-      # Prepare iOS build (fix for Generated.xcconfig error)
+      # Generate iOS configs
       - name: Prepare iOS build
         run: flutter build ios --no-codesign
 
-      # Build IPA (final step)
+      # ✅ FINAL FIX HERE
       - name: Build IPA
-        run: flutter build ipa --release --export-method ad-hoc
+        run: flutter build ipa --release --no-codesign
 
-      # Debug (to confirm IPA exists)
       - name: List build files
         run: ls -R build/ios
 
-      # Upload IPA
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: |
-            build/ios/ipa/*.ipa
-            build/ios/archive/*.xcarchive
+          path: build/ios/ipa/*.ipa
