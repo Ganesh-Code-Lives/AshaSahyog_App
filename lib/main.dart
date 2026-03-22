@@ -44,6 +44,17 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       home: const SplashScreen(),
+      builder: (context, child) {
+        return Container(
+          color: AppTheme.background,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: child!,
+            ),
+          ),
+        );
+      },
     );
   }
 }
