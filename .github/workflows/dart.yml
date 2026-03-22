@@ -1,24 +1,25 @@
-jobs:
-  build-ios:
-    runs-on: macos-latest
+workflows:
+  ios-workflow:
+    name: iOS IPA Build
 
-    steps:
-      - uses: actions/checkout@v4
+    max_build_duration: 60
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+    environment:
+      flutter: stable
+      xcode: latest
 
-      - run: flutter pub get
+    scripts:
+      - name: Get packages
+        script: flutter pub get
 
-      - run: cd ios && pod repo update
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
 
-      # ✅ THIS IS THE MAIN STEP
-      - run: flutter build ipa --no-codesign
+      - name: Build IPA
+        script: |
+          flutter build ipa --release --no-codesign
 
-      # ✅ UPLOAD IPA
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa
-          path: build/ios/ipa/*.ipa
+    artifacts:
+      - build/ios/ipa/*.ipa
