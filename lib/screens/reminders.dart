@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../models/reminder.dart';
 import '../services/reminder_service.dart';
 import 'create_reminder_screen.dart';
+import '../l10n/app_strings.dart';
 
 // ─────────────────────────────────────────────
 //  COLOURS  (matches app design system)
@@ -125,17 +126,17 @@ class _RemindersState extends State<Reminders> with SingleTickerProviderStateMix
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Reminder', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to delete this reminder?'),
+        title: Text(AppStrings.t(context, 'reminders_delete_title', 'Delete Reminder'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(AppStrings.t(context, 'reminders_delete_desc', 'Are you sure you want to delete this reminder?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: _textSub)),
+            child: Text(AppStrings.t(context, 'cancel', 'Cancel'), style: const TextStyle(color: _textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(AppStrings.t(context, 'delete', 'Delete'), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -260,13 +261,13 @@ class _RemindersState extends State<Reminders> with SingleTickerProviderStateMix
               const SizedBox(width: 4),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Reminders',
-                    style: TextStyle(color: Colors.white,
+                children: [
+                  Text(AppStrings.t(context, 'reminders_title', 'Reminders'),
+                    style: const TextStyle(color: Colors.white,
                         fontSize: 20, fontWeight: FontWeight.w700)),
-                  SizedBox(height: 2),
-                  Text('Keep track of your schedule',
-                    style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
+                  const SizedBox(height: 2),
+                  Text(AppStrings.t(context, 'reminders_subtitle', 'Keep track of your schedule'),
+                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
                 ],
               )),
               _buildModernActionBtn(Icons.refresh_rounded, _loadReminders),
@@ -313,7 +314,7 @@ class _RemindersState extends State<Reminders> with SingleTickerProviderStateMix
           controller: _searchController,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Search medications, appointments...',
+            hintText: AppStrings.t(context, 'reminders_search', 'Search medications, appointments...'),
             hintStyle: const TextStyle(color: _textSub, fontSize: 14),
             prefixIcon: const Icon(Icons.search_rounded, color: _purple, size: 20),
             suffixIcon: _searchController.text.isNotEmpty 
@@ -343,14 +344,14 @@ class _RemindersState extends State<Reminders> with SingleTickerProviderStateMix
             child: const Icon(Icons.event_note_rounded, size: 48, color: _purple),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'All clear for now!',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _textMain),
+          Text(
+            AppStrings.t(context, 'reminders_empty_title', 'All clear for now!'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _textMain),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Tap the "+" button to add a new reminder.',
-            style: TextStyle(color: _textSub, fontSize: 13),
+          Text(
+            AppStrings.t(context, 'reminders_empty_subtitle', 'Tap the "+" button to add a new reminder.'),
+            style: const TextStyle(color: _textSub, fontSize: 13),
           ),
         ],
       ),
@@ -506,7 +507,7 @@ class _ReminderCard extends StatelessWidget {
                               color: isToday && !reminder.isCompleted ? _orangeLight : tagBg,
                               borderRadius: BorderRadius.circular(8)),
                             child: Text(
-                              isToday && !reminder.isCompleted ? 'Today' : formattedDate,
+                              isToday && !reminder.isCompleted ? AppStrings.t(context, 'today', 'Today') : formattedDate,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,

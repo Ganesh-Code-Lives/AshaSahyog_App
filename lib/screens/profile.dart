@@ -8,6 +8,7 @@ import '../models/user_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'language_selection.dart';
 import 'support.dart';
+import '../l10n/app_strings.dart';
 
 class Profile extends StatefulWidget {
   final VoidCallback onBack;
@@ -232,9 +233,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Profile photo',
-                style: TextStyle(
+              Text(
+                AppStrings.t(context, 'profile_photo', 'Profile photo'),
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1E1B2E),
@@ -252,13 +253,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   ),
                   child: const Icon(Icons.photo_library_rounded, color: Color(0xFF7C3AED), size: 20),
                 ),
-                title: const Text(
-                  'Change photo',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E1B2E)),
+                title: Text(
+                  AppStrings.t(context, 'change_photo', 'Change photo'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E1B2E)),
                 ),
-                subtitle: const Text(
-                  'Pick a new photo from gallery',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                subtitle: Text(
+                  AppStrings.t(context, 'pick_new_photo', 'Pick a new photo from gallery'),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -277,13 +278,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   ),
                   child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 20),
                 ),
-                title: const Text(
-                  'Remove photo',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+                title: Text(
+                  AppStrings.t(context, 'remove_photo', 'Remove photo'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
                 ),
-                subtitle: const Text(
-                  'Revert to default avatar',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                subtitle: Text(
+                  AppStrings.t(context, 'revert_avatar', 'Revert to default avatar'),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -344,7 +345,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
             titlePadding: const EdgeInsets.only(top: 28, left: 24, right: 24, bottom: 8),
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-            title: const Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
+            title: Text(AppStrings.t(context, 'change_password', 'Change Password'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
             content: Form(
               key: formKey,
               child: TextFormField(
@@ -352,7 +353,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 obscureText: true,
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF1F2937)),
                 decoration: InputDecoration(
-                  hintText: 'Enter new password',
+                  hintText: AppStrings.t(context, 'enter_new_password', 'Enter new password'),
                   hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
                   filled: true,
                   fillColor: const Color(0xFFF9FAFB),
@@ -362,7 +363,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5)),
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
                 ),
-                validator: (v) => v != null && v.length >= 6 ? null : 'Must be at least 6 characters',
+                validator: (v) => v != null && v.length >= 6 ? null : AppStrings.t(context, 'password_min_length', 'Must be at least 6 characters'),
               ),
             ),
             actions: [
@@ -372,7 +373,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600, fontSize: 15)),
+                child: Text(AppStrings.t(context, 'cancel', 'Cancel'), style: const TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600, fontSize: 15)),
               ),
               ElevatedButton(
                 onPressed: isSaving ? null : () async {
@@ -400,7 +401,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 ),
                 child: isSaving 
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                    : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                    : Text(AppStrings.t(context, 'update', 'Update'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
               ),
             ],
           );
@@ -471,9 +472,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               ),
                             ),
                             const Spacer(),
-                            const Text(
-                              'My Profile',
-                              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
+                            Text(
+                              AppStrings.t(context, 'my_profile', 'My Profile'),
+                              style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
                             ),
                             const Spacer(),
                             GestureDetector(
@@ -599,7 +600,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     child: Column(
                       children: [
                         _SectionCard(
-                          title: 'Personal Information',
+                          title: AppStrings.t(context, 'personal_info', 'Personal Information'),
                           icon: Icons.person_outline_rounded,
                           trailing: _isEditingPersonal
                               ? null
@@ -612,30 +613,30 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 ),
                           children: [
                             if (!_isEditingPersonal) ...[
-                              _InfoRow(label: 'Full Name', value: widget.personalData?.fullName),
+                              _InfoRow(label: AppStrings.t(context, 'full_name', 'Full Name'), value: widget.personalData?.fullName),
                               _InfoDivider(),
-                              _InfoRow(label: 'Mobile', value: widget.mobile != null ? '+91 ${widget.mobile}' : null),
+                              _InfoRow(label: AppStrings.t(context, 'mobile', 'Mobile'), value: widget.mobile != null ? '+91 ${widget.mobile}' : null),
                               _InfoDivider(),
-                              _InfoRow(label: 'Date of Birth', value: widget.personalData?.dateOfBirth?.toLocal().toString().split(' ')[0]),
+                              _InfoRow(label: AppStrings.t(context, 'dob', 'Date of Birth'), value: widget.personalData?.dateOfBirth?.toLocal().toString().split(' ')[0]),
                               _InfoDivider(),
-                              _InfoRow(label: 'Gender', value: widget.personalData?.gender),
+                              _InfoRow(label: AppStrings.t(context, 'gender', 'Gender'), value: widget.personalData?.gender),
                               _InfoDivider(),
-                              _InfoRow(label: 'Address', value: widget.personalData?.address, isLast: true),
+                              _InfoRow(label: AppStrings.t(context, 'address', 'Address'), value: widget.personalData?.address, isLast: true),
                             ] else
                               Form(
                                 key: _personalFormKey,
                                 child: Column(
                                   children: [
-                                    _buildEditableField('Full Name', _nameCtrl, validator: (v) => v!.isEmpty ? 'Required' : null),
+                                    _buildEditableField(AppStrings.t(context, 'full_name', 'Full Name'), _nameCtrl, validator: (v) => v!.isEmpty ? 'Required' : null),
                                     const SizedBox(height: 12),
-                                    _buildEditableField('Mobile', _phoneCtrl, keyboardType: TextInputType.phone, validator: (v) => v!.length < 10 ? 'Invalid' : null),
+                                    _buildEditableField(AppStrings.t(context, 'mobile', 'Mobile'), _phoneCtrl, keyboardType: TextInputType.phone, validator: (v) => v!.length < 10 ? 'Invalid' : null),
                                     const SizedBox(height: 12),
-                                    _buildEditableField('Date of Birth', _dobCtrl, hint: 'YYYY-MM-DD'),
+                                    _buildEditableField(AppStrings.t(context, 'dob', 'Date of Birth'), _dobCtrl, hint: 'YYYY-MM-DD'),
                                     const SizedBox(height: 12),
                                     DropdownButtonFormField<String>(
                                       value: _gender,
                                       decoration: InputDecoration(
-                                        labelText: 'Gender',
+                                        labelText: AppStrings.t(context, 'gender', 'Gender'),
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                       ),
@@ -647,14 +648,14 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                       onChanged: (val) => setState(() => _gender = val!),
                                     ),
                                     const SizedBox(height: 12),
-                                    _buildEditableField('Address', _addressCtrl),
+                                    _buildEditableField(AppStrings.t(context, 'address', 'Address'), _addressCtrl),
                                     const SizedBox(height: 16),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
                                         TextButton(
                                           onPressed: _isSavingPersonal ? null : () => setState(() => _isEditingPersonal = false),
-                                          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                          child: Text(AppStrings.t(context, 'cancel', 'Cancel'), style: const TextStyle(color: Colors.grey)),
                                         ),
                                         const SizedBox(width: 8),
                                         ElevatedButton(
@@ -662,7 +663,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                                           child: _isSavingPersonal
                                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                              : const Text('Save', style: TextStyle(color: Colors.white)),
+                                              : Text(AppStrings.t(context, 'save', 'Save'), style: const TextStyle(color: Colors.white)),
                                         ),
                                       ],
                                     ),
@@ -675,7 +676,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                         const SizedBox(height: 20),
 
                         _SectionCard(
-                          title: 'Disability Details',
+                          title: AppStrings.t(context, 'disability_details', 'Disability Details'),
                           icon: Icons.accessible_forward_rounded,
                           trailing: _isEditingDisability
                               ? null
@@ -688,19 +689,19 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 ),
                           children: [
                             if (!_isEditingDisability && widget.disabilityData?.hasDisability == true) ...[
-                              _InfoRow(label: 'Type', value: widget.disabilityData?.disabilityType),
+                              _InfoRow(label: AppStrings.t(context, 'type', 'Type'), value: widget.disabilityData?.disabilityType),
                               _InfoDivider(),
-                              _InfoRow(label: 'Percentage', value: widget.disabilityData?.percentage != null ? '${widget.disabilityData!.percentage}%' : null),
+                              _InfoRow(label: AppStrings.t(context, 'percentage', 'Percentage'), value: widget.disabilityData?.percentage != null ? '${widget.disabilityData!.percentage}%' : null),
                               _InfoDivider(),
-                              _InfoRow(label: 'Cert. Number', value: widget.disabilityData?.certificateNumber, isLast: true),
+                              _InfoRow(label: AppStrings.t(context, 'cert_number', 'Cert. Number'), value: widget.disabilityData?.certificateNumber, isLast: true),
                               if (widget.disabilityData!.assistiveDevices.isNotEmpty) ...[
                                 _InfoDivider(),
-                                _InfoRow(label: 'Devices', value: widget.disabilityData!.assistiveDevices.join(", "), isLast: true),
+                                _InfoRow(label: AppStrings.t(context, 'devices', 'Devices'), value: widget.disabilityData!.assistiveDevices.join(", "), isLast: true),
                               ],
                             ] else if (!_isEditingDisability)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8),
-                                child: Text('No disability details provided.', style: TextStyle(color: Color(0xFF9CA3AF), fontStyle: FontStyle.italic)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(AppStrings.t(context, 'no_disability_details', 'No disability details provided.'), style: const TextStyle(color: Color(0xFF9CA3AF), fontStyle: FontStyle.italic)),
                               )
                             else
                               Form(
@@ -708,13 +709,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildEditableField('Type of Disability', _disTypeCtrl, validator: (v) => v!.isEmpty ? 'Required' : null),
+                                    _buildEditableField(AppStrings.t(context, 'disability_type', 'Type of Disability'), _disTypeCtrl, validator: (v) => v!.isEmpty ? 'Required' : null),
                                     const SizedBox(height: 12),
-                                    _buildEditableField('Percentage (%)', _disPercentCtrl, keyboardType: TextInputType.number),
+                                    _buildEditableField(AppStrings.t(context, 'percentage_percent', 'Percentage (%)'), _disPercentCtrl, keyboardType: TextInputType.number),
                                     const SizedBox(height: 12),
-                                    _buildEditableField('Certificate Number', _certCtrl),
+                                    _buildEditableField(AppStrings.t(context, 'certificate_number', 'Certificate Number'), _certCtrl),
                                     const SizedBox(height: 16),
-                                    const Text('Assistive Devices', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
+                                    Text(AppStrings.t(context, 'assistive_devices', 'Assistive Devices'), style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
                                     const SizedBox(height: 8),
                                     Wrap(
                                       spacing: 8,
@@ -741,7 +742,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                       children: [
                                         TextButton(
                                           onPressed: _isSavingDisability ? null : () => setState(() => _isEditingDisability = false),
-                                          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                          child: Text(AppStrings.t(context, 'cancel', 'Cancel'), style: const TextStyle(color: Colors.grey)),
                                         ),
                                         const SizedBox(width: 8),
                                         ElevatedButton(
@@ -749,7 +750,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                                           child: _isSavingDisability
                                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                              : const Text('Save', style: TextStyle(color: Colors.white)),
+                                              : Text(AppStrings.t(context, 'save', 'Save'), style: const TextStyle(color: Colors.white)),
                                         ),
                                       ],
                                     ),
@@ -770,17 +771,17 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           child: Column(
                             children: [
                               _SettingsTile(
-                                icon: Icons.language, color: const Color(0xFF0284C7), bgColor: const Color(0xFFE0F2FE), title: 'Language & Accessibility',
+                                icon: Icons.language, color: const Color(0xFF0284C7), bgColor: const Color(0xFFE0F2FE), title: AppStrings.t(context, 'language_accessibility', 'Language & Accessibility'),
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LanguageSelection(onComplete: (lang) => Navigator.pop(context)))),
                               ),
                               Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
                               _SettingsTile(
-                                icon: Icons.lock_outline_rounded, color: const Color(0xFFBE185D), bgColor: const Color(0xFFFCE7F3), title: 'Change Password',
+                                icon: Icons.lock_outline_rounded, color: const Color(0xFFBE185D), bgColor: const Color(0xFFFCE7F3), title: AppStrings.t(context, 'change_password', 'Change Password'),
                                 onTap: _showChangePasswordDialog,
                               ),
                               Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
                               _SettingsTile(
-                                icon: Icons.help_outline_rounded, color: const Color(0xFF059669), bgColor: const Color(0xFFD1FAE5), title: 'Help & Support',
+                                icon: Icons.help_outline_rounded, color: const Color(0xFF059669), bgColor: const Color(0xFFD1FAE5), title: AppStrings.t(context, 'help_support', 'Help & Support'),
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Support(onBack: () => Navigator.pop(context)))),
                               ),
                             ],
@@ -795,7 +796,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           child: OutlinedButton.icon(
                             onPressed: widget.onLogout,
                             icon: const Icon(Icons.logout_rounded, color: Color(0xFFBE185D)),
-                            label: const Text('Log Out', style: TextStyle(color: Color(0xFFBE185D), fontSize: 16, fontWeight: FontWeight.bold)),
+                            label: Text(AppStrings.t(context, 'logout', 'Log Out'), style: const TextStyle(color: Color(0xFFBE185D), fontSize: 16, fontWeight: FontWeight.bold)),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Color(0xFFFECACA)),
                               backgroundColor: const Color(0xFFFEF2F2),

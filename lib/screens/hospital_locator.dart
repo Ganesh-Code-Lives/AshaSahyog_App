@@ -95,8 +95,10 @@ class _HospitalLocatorState extends State<HospitalLocator>
       }
 
       Position position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high));
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 15),
+          ));
 
       if (!mounted) return;
       setState(() {
@@ -118,7 +120,8 @@ class _HospitalLocatorState extends State<HospitalLocator>
     final List<String> overpassMirrors = [
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
     ];
 
     // Extended radius to 8km for better results in Mumbai
@@ -140,8 +143,15 @@ out center body;
       try {
         final uri = Uri.parse(mirror);
         final response = await http
-            .post(uri, body: {'data': query})
-            .timeout(const Duration(seconds: 30));
+            .post(
+              uri,
+              headers: {
+                'User-Agent': 'AshaSahyogApp/1.0',
+                'Accept': 'application/json',
+              },
+              body: {'data': query},
+            )
+            .timeout(const Duration(seconds: 20));
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -199,7 +209,16 @@ out center body;
             ));
           }
 
-          // Remove duplicates by name proximity
+          // Remove duplicates by name and location proximity
+          final Map<String, Hospital> uniqueHospitals = {};
+          for (var h in fetchedHospitals) {
+            final key = "${h.name.toLowerCase()}_${(h.lat * 1000).round()}_${(h.lon * 1000).round()}";
+            if (!uniqueHospitals.containsKey(key)) {
+              uniqueHospitals[key] = h;
+            }
+          }
+          fetchedHospitals = uniqueHospitals.values.toList();
+
           fetchedHospitals.sort(
               (a, b) => a.distanceInMeters.compareTo(b.distanceInMeters));
 

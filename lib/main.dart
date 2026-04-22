@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/intro_screen.dart';
+import 'providers/language_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +33,12 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

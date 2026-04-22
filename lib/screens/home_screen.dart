@@ -16,6 +16,7 @@ import '../models/reminder.dart';
 import '../services/reminder_service.dart';
 import 'intro_screen.dart';
 import 'personal_details.dart';
+import '../l10n/app_strings.dart';
 
 // ─────────────────────────────────────────────
 //  SCHEME SUMMARY MODEL
@@ -285,8 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // ─────────────────────────────────────────────
   Widget _buildHeroHeader() {
     final hour     = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good Morning,'
+    final greetingKey = hour < 12 ? 'greeting_morning'
+        : hour < 17 ? 'greeting_afternoon' : 'greeting_evening';
+    final defaultGreeting = hour < 12 ? 'Good Morning,'
         : hour < 17 ? 'Good Afternoon,' : 'Good Evening,';
+    final greeting = AppStrings.t(context, greetingKey, defaultGreeting);
     final firstName = fullName.split(' ').first;
 
     return Container(
@@ -338,9 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 6),
-                      const Text(
-                        'How can we help you today?',
-                        style: TextStyle(
+                      Text(
+                        AppStrings.t(context, 'home_help', 'How can we help you today?'),
+                        style: const TextStyle(
                           color: Color(0xCCFFFFFF),
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
@@ -420,26 +424,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickActionsGrid() {
     final actions = [
       _ActionData(
-        'Find Schemes',
-        'Browse govt. schemes',
+        AppStrings.t(context, 'action_find_schemes', 'Find Schemes'),
+        AppStrings.t(context, 'action_find_schemes_desc', 'Browse govt. schemes'),
         Icons.description_rounded,
         _purpleLight, _purple, 'schemes',
       ),
       _ActionData(
-        'Nearby Hospitals',
-        'Locate care near you',
+        AppStrings.t(context, 'action_hospitals', 'Nearby Hospitals'),
+        AppStrings.t(context, 'action_hospitals_desc', 'Locate care near you'),
         Icons.local_hospital_rounded,
         _greenLight, _green, 'hospitals',
       ),
       _ActionData(
-        'My Documents',
-        'Manage your files',
+        AppStrings.t(context, 'action_documents', 'My Documents'),
+        AppStrings.t(context, 'action_documents_desc', 'Manage your files'),
         Icons.folder_rounded,
         _blueLight, _blue, 'documents',
       ),
       _ActionData(
-        'My Reminders',
-        'Stay on schedule',
+        AppStrings.t(context, 'action_reminders', 'My Reminders'),
+        AppStrings.t(context, 'action_reminders_desc', 'Stay on schedule'),
         Icons.notifications_rounded,
         _pinkLight, _pink, 'reminders',
       ),
@@ -537,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Today at a Glance', onTap: () => _navigate('reminders')),
+        _sectionHeader(AppStrings.t(context, 'home_today_glance', 'Today at a Glance'), onTap: () => _navigate('reminders')),
         const SizedBox(height: 14),
 
         if (_loadingReminders)
@@ -575,9 +579,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _glanceCard(
                   r.title,
-                  '${isToday ? 'Today' : _shortDate(r.date)} at ${r.time.format(context)}',
+                  '${isToday ? AppStrings.t(context, 'today', 'Today') : _shortDate(r.date)} ${AppStrings.t(context, 'at', 'at')} ${r.time.format(context)}',
                   icon, icBg, icColor,
-                  badge: isSoon ? 'Soon' : isToday ? 'Today' : null,
+                  badge: isSoon ? AppStrings.t(context, 'soon', 'Soon') : isToday ? AppStrings.t(context, 'today', 'Today') : null,
                   badgeColor: isSoon ? _red : _purple,
                 ),
               );
@@ -601,11 +605,11 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: const BoxDecoration(color: _purpleLight, shape: BoxShape.circle),
           child: const Icon(Icons.notifications_none_rounded, color: _purple, size: 24)),
         const SizedBox(height: 10),
-        const Text('No upcoming reminders',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _textMain)),
+        Text(AppStrings.t(context, 'home_no_reminders', 'No upcoming reminders'),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _textMain)),
         const SizedBox(height: 4),
-        const Text('Tap below to add your first reminder',
-          style: TextStyle(fontSize: 12, color: _textSub)),
+        Text(AppStrings.t(context, 'home_add_reminder_hint', 'Tap below to add your first reminder'),
+          style: const TextStyle(fontSize: 12, color: _textSub)),
         const SizedBox(height: 14),
         GestureDetector(
           onTap: () => _navigate('reminders'),
@@ -622,8 +626,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               ]
             ),
-            child: const Text('Add Reminder',
-              style: TextStyle(color: Colors.white,
+            child: Text(AppStrings.t(context, 'home_add_reminder', 'Add Reminder'),
+              style: const TextStyle(color: Colors.white,
                   fontSize: 14, fontWeight: FontWeight.bold))),
         ),
       ]),
@@ -640,7 +644,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Recommended Schemes', onTap: () => _navigate('schemes')),
+        _sectionHeader(AppStrings.t(context, 'home_recommended_schemes', 'Recommended Schemes'), onTap: () => _navigate('schemes')),
         const SizedBox(height: 14),
 
         if (_loadingSchemes)
@@ -664,15 +668,15 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _cardBorder, width: 1.5)),
-            child: const Column(children: [
-              Icon(Icons.description_outlined, color: _purple, size: 38),
-              SizedBox(height: 8),
-              Text('No schemes available',
-                style: TextStyle(fontSize: 14,
+            child: Column(children: [
+              const Icon(Icons.description_outlined, color: _purple, size: 38),
+              const SizedBox(height: 8),
+              Text(AppStrings.t(context, 'home_no_schemes', 'No schemes available'),
+                style: const TextStyle(fontSize: 14,
                     fontWeight: FontWeight.w600, color: _textMain)),
-              SizedBox(height: 4),
-              Text('Check back later or browse all schemes',
-                style: TextStyle(fontSize: 12, color: _textSub)),
+              const SizedBox(height: 4),
+              Text(AppStrings.t(context, 'home_no_schemes_hint', 'Check back later or browse all schemes'),
+                style: const TextStyle(fontSize: 12, color: _textSub)),
             ]))
 
         else
@@ -710,8 +714,8 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: _purpleLight,
               borderRadius: BorderRadius.circular(100)),
-            child: const Text('See all',
-              style: TextStyle(fontSize: 12, color: _purple,
+            child: Text(AppStrings.t(context, 'see_all', 'See all'),
+              style: const TextStyle(fontSize: 12, color: _purple,
                   fontWeight: FontWeight.w600)))),
       ],
     );

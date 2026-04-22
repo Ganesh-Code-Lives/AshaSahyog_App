@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_strings.dart';
 
 // ─────────────────────────────────────────────
 //  COLOURS  (matches app design system)
@@ -92,16 +93,16 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                     children: [
                       _fadeSlide(_buildEmergencyBanner(), delay: 0.0),
                       const SizedBox(height: 26),
-                  _fadeSlide(_buildSectionLabel('Quick Emergency'), delay: 0.1),
+                  _fadeSlide(_buildSectionLabel(AppStrings.t(context, 'quick_emergency', 'Quick Emergency')), delay: 0.1),
                   const SizedBox(height: 14),
                   _fadeSlide(_buildEmergencyGrid(), delay: 0.2),
                   const SizedBox(height: 28),
-                  _fadeSlide(_buildSectionLabel('Government Helplines'), delay: 0.3),
+                  _fadeSlide(_buildSectionLabel(AppStrings.t(context, 'gov_helplines', 'Government Helplines')), delay: 0.3),
                   const SizedBox(height: 14),
                   _fadeSlide(
                     _buildHelpline(
-                      title: 'Disability Helpline',
-                      subtitle: 'National helpline for persons with disabilities',
+                      title: AppStrings.t(context, 'disability_helpline', 'Disability Helpline'),
+                      subtitle: AppStrings.t(context, 'disability_helpline_desc', 'National helpline for persons with disabilities'),
                       number: '1800-222-014',
                       icon: Icons.accessible_forward_rounded,
                       iconBg: _purpleLight,
@@ -113,8 +114,8 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 12),
                   _fadeSlide(
                     _buildHelpline(
-                      title: 'Health Ministry',
-                      subtitle: 'COVID & health related assistance',
+                      title: AppStrings.t(context, 'health_ministry', 'Health Ministry'),
+                      subtitle: AppStrings.t(context, 'health_ministry_desc', 'COVID & health related assistance'),
                       number: '1075',
                       icon: Icons.health_and_safety_rounded,
                       iconBg: _blueLight,
@@ -126,8 +127,8 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 12),
                   _fadeSlide(
                     _buildHelpline(
-                      title: 'Senior Citizen Helpline',
-                      subtitle: 'Assistance for senior citizens',
+                      title: AppStrings.t(context, 'senior_citizen_helpline', 'Senior Citizen Helpline'),
+                      subtitle: AppStrings.t(context, 'senior_citizen_desc', 'Assistance for senior citizens'),
                       number: '14567',
                       icon: Icons.elderly_rounded,
                       iconBg: _greenLight,
@@ -139,8 +140,8 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 12),
                   _fadeSlide(
                     _buildHelpline(
-                      title: 'Child Helpline',
-                      subtitle: 'Protection and support for children',
+                      title: AppStrings.t(context, 'child_helpline', 'Child Helpline'),
+                      subtitle: AppStrings.t(context, 'child_helpline_desc', 'Protection and support for children'),
                       number: '1098',
                       icon: Icons.child_care_rounded,
                       iconBg: _orangeLight,
@@ -150,7 +151,7 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                     delay: 0.7,
                   ),
                   const SizedBox(height: 28),
-                  _fadeSlide(_buildSectionLabel('Mental Health Support'), delay: 0.8),
+                  _fadeSlide(_buildSectionLabel(AppStrings.t(context, 'mental_health_support', 'Mental Health Support')), delay: 0.8),
                   const SizedBox(height: 14),
                   _fadeSlide(_buildMentalHealthCard(), delay: 0.9),
                 ],
@@ -199,15 +200,15 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
               Expanded(
                   child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Help & Support',
-                      style: TextStyle(
+                children: [
+                  Text(AppStrings.t(context, 'support_title', 'Help & Support'),
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w700)),
-                  SizedBox(height: 2),
-                  Text('Emergency numbers & helplines',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
+                  const SizedBox(height: 2),
+                  Text(AppStrings.t(context, 'support_subtitle', 'Emergency numbers & helplines'),
+                      style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
                 ],
               )),
               Container(
@@ -249,18 +250,18 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
             child: const Icon(Icons.warning_amber_rounded,
                 color: _red, size: 20)),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Immediate Danger?',
-                  style: TextStyle(
+              Text(AppStrings.t(context, 'immediate_danger', 'Immediate Danger?'),
+                  style: const TextStyle(
                       color: _red,
                       fontWeight: FontWeight.w700,
                       fontSize: 14)),
-              SizedBox(height: 1),
-              Text('Call the national emergency number',
-                  style: TextStyle(
+              const SizedBox(height: 1),
+              Text(AppStrings.t(context, 'call_national_emergency', 'Call the national emergency number'),
+                  style: const TextStyle(
                       color: Color(0xFF991B1B),
                       fontSize: 11,
                       fontWeight: FontWeight.w400)),
@@ -316,13 +317,13 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
   // ─────────────────────────────────────────────
   Widget _buildEmergencyGrid() {
     final items = [
-      _EmergencyItem('Ambulance', '108', Icons.medical_services_rounded,
+      _EmergencyItem(AppStrings.t(context, 'ambulance', 'Ambulance'), '108', Icons.medical_services_rounded,
           _pink, _pinkLight),
       _EmergencyItem(
-          'Police', '100', Icons.local_police_rounded, _blue, _blueLight),
-      _EmergencyItem('Fire', '101', Icons.local_fire_department_rounded,
+          AppStrings.t(context, 'police', 'Police'), '100', Icons.local_police_rounded, _blue, _blueLight),
+      _EmergencyItem(AppStrings.t(context, 'fire', 'Fire'), '101', Icons.local_fire_department_rounded,
           _orange, _orangeLight),
-      _EmergencyItem('Women Help', '1091', Icons.female_rounded, _purple,
+      _EmergencyItem(AppStrings.t(context, 'women_help', 'Women Help'), '1091', Icons.female_rounded, _purple,
           _purpleLight),
     ];
 
@@ -397,7 +398,7 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.call_rounded, size: 12, color: item.color),
                     const SizedBox(width: 4),
-                    Text('Call Now',
+                    Text(AppStrings.t(context, 'call_now', 'Call Now'),
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -461,8 +462,8 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                     decoration: BoxDecoration(
                         color: _greenLight,
                         borderRadius: BorderRadius.circular(100)),
-                    child: const Text('Free',
-                        style: TextStyle(
+                    child: Text(AppStrings.t(context, 'free', 'Free'),
+                        style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: _green))),
@@ -556,16 +557,16 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
                   child: const Icon(Icons.psychology_rounded,
                       color: Colors.white, size: 22)),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Mental Health Support',
-                        style: TextStyle(
+                    Text(AppStrings.t(context, 'mental_health_support', 'Mental Health Support'),
+                        style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 15)),
-                    Text('iCall · Vandrevala Foundation',
+                    const Text('iCall · Vandrevala Foundation',
                         style: TextStyle(
                             color: Color(0xCCFFFFFF), fontSize: 11)),
                   ],
@@ -573,9 +574,9 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
               ),
             ]),
             const SizedBox(height: 14),
-            const Text(
-                'Speak to a trained mental health counsellor. Free & confidential support available 24/7.',
-                style: TextStyle(
+            Text(
+                AppStrings.t(context, 'mental_health_desc', 'Speak to a trained mental health counsellor. Free & confidential support available 24/7.'),
+                style: const TextStyle(
                     color: Color(0xE6FFFFFF), fontSize: 12, height: 1.5)),
             const SizedBox(height: 16),
             Row(children: [

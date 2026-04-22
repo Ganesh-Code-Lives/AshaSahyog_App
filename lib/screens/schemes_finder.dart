@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'scheme_details_screen.dart';
 
@@ -38,15 +41,30 @@ class SchemeSummary {
     this.active = true,
   });
 
-  factory SchemeSummary.fromJson(Map<String, dynamic> j) => SchemeSummary(
-        id: j['id'] as String? ?? '',
-        title: j['title'] as String? ?? '',
-        category: j['category'] as String?,
-        state: j['state'] as String?,
-        summary: j['summary'] as String?,
-        amount: j['amount'],
-        active: j['active'] as bool? ?? true,
-      );
+  factory SchemeSummary.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
+    String t = j['title'] as String? ?? '';
+    String? s = j['summary'] as String?;
+    
+    if (langCode == 'hi') {
+      t = j['title_hi'] as String? ?? t;
+      if (t.isEmpty) t = j['title'] as String? ?? '';
+      s = j['summary_hi'] as String? ?? s;
+    } else if (langCode == 'mr') {
+      t = j['title_mr'] as String? ?? t;
+      if (t.isEmpty) t = j['title'] as String? ?? '';
+      s = j['summary_mr'] as String? ?? s;
+    }
+
+    return SchemeSummary(
+      id: j['id'] as String? ?? '',
+      title: t,
+      category: j['category'] as String?,
+      state: j['state'] as String?,
+      summary: s,
+      amount: j['amount'],
+      active: j['active'] as bool? ?? true,
+    );
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -60,10 +78,11 @@ class _SchemeRepository {
     String? category,
     String? state,
     String? search,
+    String langCode = 'en',
   }) async {
     var query = _db
         .from('schemes')
-        .select('id, title, category, state, summary, amount, active')
+        .select('*')
         .eq('active', true);
 
     if (category != null && category != 'All') {
@@ -73,17 +92,18 @@ class _SchemeRepository {
       query = query.eq('state', state);
     }
     if (search != null && search.trim().isNotEmpty) {
-      query = query.ilike('title', '%${search.trim()}%');
+      // Search by title only since translated columns don't exist in DB
+      query = query.or('title.ilike.%${search.trim()}%');
     }
 
     final data = await query.order('title');
     return (data as List)
-        .map((j) => SchemeSummary.fromJson(j as Map<String, dynamic>))
+        .map((j) => SchemeSummary.fromJson(j as Map<String, dynamic>, langCode: langCode))
         .toList();
   }
 
   /// Fetch one scheme with ALL related data for the details screen.
-  Future<SchemeDetail> getSchemeById(String id) async {
+  Future<SchemeDetail> getSchemeById(String id, {String langCode = 'en'}) async {
     final json = await _db.from('schemes').select('''
       *,
       scheme_eligibility(*),
@@ -94,7 +114,7 @@ class _SchemeRepository {
       scheme_similar(*)
     ''').eq('id', id).single();
 
-    return SchemeDetail.fromJson(json as Map<String, dynamic>);
+    return SchemeDetail.fromJson(json as Map<String, dynamic>, langCode: langCode);
   }
 }
 
@@ -132,6 +152,21 @@ class _SchemesFinderState extends State<SchemesFinder> {
     'All', 'Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Gujarat',
   ];
 
+  String _translateCategory(String cat) {
+    if (cat == 'All') return AppStrings.t(context, 'schemes_finder_all', 'All');
+    if (cat == 'Financial Assistance') return AppStrings.t(context, 'schemes_finder_financial', 'Financial');
+    if (cat == 'Education') return AppStrings.t(context, 'schemes_finder_education', 'Education');
+    if (cat == 'Employment') return AppStrings.t(context, 'schemes_finder_employment', 'Employment');
+    if (cat == 'Healthcare') return AppStrings.t(context, 'schemes_finder_health', 'Health');
+    if (cat == 'Housing') return AppStrings.t(context, 'schemes_finder_housing', 'Housing');
+    return cat;
+  }
+
+  String _translateState(String state) {
+    if (state == 'All') return AppStrings.t(context, 'schemes_finder_all', 'All');
+    return AppStrings.t(context, 'state_${state.toLowerCase().replaceAll(' ', '_')}', state);
+  }
+
   // ── lifecycle ─────────────────────────────────
   @override
   void initState() {
@@ -149,16 +184,19 @@ class _SchemesFinderState extends State<SchemesFinder> {
 
   // ── data ──────────────────────────────────────
   Future<void> _loadSchemes() async {
+    if (!mounted) return;
     setState(() { _loading = true; _error = null; });
     try {
+      final langCode = Provider.of<LanguageProvider>(context, listen: false).langCode;
       final data = await _repo.getSchemes(
         category: _selectedCategory == 'All' ? null : _selectedCategory,
         state   : _selectedState    == 'All' ? null : _selectedState,
         search  : _searchCtrl.text,
+        langCode: langCode,
       );
-      setState(() { _schemes = data; _loading = false; });
+      if (mounted) setState(() { _schemes = data; _loading = false; });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
@@ -188,7 +226,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
     Overlay.of(context).insert(overlay);
 
     try {
-      final scheme = await _repo.getSchemeById(schemeId);
+      final langCode = Provider.of<LanguageProvider>(context, listen: false).langCode;
+      final scheme = await _repo.getSchemeById(schemeId, langCode: langCode);
       overlay.remove();
       if (!mounted) return;
       Navigator.push(
@@ -254,11 +293,11 @@ class _SchemesFinderState extends State<SchemesFinder> {
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       color: _textMain, size: 18),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Scheme Finder',
+                    AppStrings.t(context, 'schemes_finder_title', 'Scheme Finder'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: _textMain,
@@ -302,15 +341,15 @@ class _SchemesFinderState extends State<SchemesFinder> {
                       controller: _searchCtrl,
                       style: const TextStyle(
                           fontSize: 14, color: _textMain),
-                      decoration: const InputDecoration(
-                        hintText: 'Search disability schemes…',
-                        hintStyle: TextStyle(color: _textSub, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: AppStrings.t(context, 'schemes_finder_search', 'Search disability schemes…'),
+                        hintStyle: const TextStyle(color: _textSub, fontSize: 14),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         filled: false,
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
@@ -366,7 +405,7 @@ class _SchemesFinderState extends State<SchemesFinder> {
                         ),
                       ),
                       child: Text(
-                        cat,
+                        _translateCategory(cat),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -412,7 +451,7 @@ class _SchemesFinderState extends State<SchemesFinder> {
                         ),
                       ),
                       child: Text(
-                        state,
+                        _translateState(state),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -456,7 +495,7 @@ class _SchemesFinderState extends State<SchemesFinder> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                '${_schemes.length} scheme${_schemes.length == 1 ? '' : 's'} found',
+                '${_schemes.length} ${AppStrings.t(context, 'schemes_found', 'schemes found')}',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -499,8 +538,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
           children: [
             const Icon(Icons.wifi_off_rounded, color: _textSub, size: 48),
             const SizedBox(height: 16),
-            const Text('Could not load schemes',
-                style: TextStyle(fontSize: 16,
+            Text(AppStrings.t(context, 'error_loading_schemes', 'Could not load schemes'),
+                style: const TextStyle(fontSize: 16,
                     fontWeight: FontWeight.w600, color: _textMain)),
             const SizedBox(height: 8),
             Text(_error ?? 'Unknown error',
@@ -517,8 +556,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
                       colors: [_purple, _purpleMid]),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text('Try again',
-                    style: TextStyle(color: Colors.white,
+                child: Text(AppStrings.t(context, 'try_again', 'Try again'),
+                    style: const TextStyle(color: Colors.white,
                         fontWeight: FontWeight.w600)),
               ),
             ),
@@ -544,12 +583,12 @@ class _SchemesFinderState extends State<SchemesFinder> {
                   color: _purple, size: 36),
             ),
             const SizedBox(height: 16),
-            const Text('No schemes found',
-                style: TextStyle(fontSize: 16,
+            Text(AppStrings.t(context, 'schemes_finder_no_results', 'No schemes found'),
+                style: const TextStyle(fontSize: 16,
                     fontWeight: FontWeight.w600, color: _textMain)),
             const SizedBox(height: 8),
-            const Text('Try changing your search or filters',
-                style: TextStyle(fontSize: 13, color: _textSub)),
+            Text(AppStrings.t(context, 'try_changing_search', 'Try changing your search or filters'),
+                style: const TextStyle(fontSize: 13, color: _textSub)),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () {
@@ -560,8 +599,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
                 });
                 _loadSchemes();
               },
-              child: const Text('Clear all filters',
-                  style: TextStyle(color: _purple,
+              child: Text(AppStrings.t(context, 'clear_all_filters', 'Clear all filters'),
+                  style: const TextStyle(color: _purple,
                       fontWeight: FontWeight.w600, fontSize: 14)),
             ),
           ],
@@ -748,12 +787,12 @@ class _SchemeCard extends StatelessWidget {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.volume_up_rounded,
+                        children: [
+                          const Icon(Icons.volume_up_rounded,
                               color: Color(0xFFBE185D), size: 13),
-                          SizedBox(width: 5),
-                          Text('Read Aloud',
-                              style: TextStyle(
+                          const SizedBox(width: 5),
+                          Text(AppStrings.t(context, 'read_aloud', 'Read Aloud'),
+                              style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: Color(0xFFBE185D))),
@@ -775,14 +814,14 @@ class _SchemeCard extends StatelessWidget {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text('View Details',
-                              style: TextStyle(
+                        children: [
+                          Text(AppStrings.t(context, 'view_details', 'View Details'),
+                              style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white)),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_rounded,
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded,
                               color: Colors.white, size: 13),
                         ],
                       ),

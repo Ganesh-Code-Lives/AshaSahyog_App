@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // add url_launcher: ^6.2.4 to pubspec.yaml
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
-
+import '../l10n/app_strings.dart';
+import 'document_vault.dart';
 // ─────────────────────────────────────────────
 //  DATA MODELS — field names match Supabase exactly
 // ─────────────────────────────────────────────
@@ -49,13 +52,21 @@ class SchemeBenefit {
     this.iconKey, this.sortOrder = 0,
   });
 
-  factory SchemeBenefit.fromJson(Map<String, dynamic> j) => SchemeBenefit(
-    text      : j['benefit_text'] as String? ?? '', // ← FIX
-    valueLabel: j['value_label']  as String?,
-    unit      : j['unit']         as String?,
-    iconKey   : j['icon_key']     as String?,
-    sortOrder : j['sort_order']   as int? ?? 0,
-  );
+  factory SchemeBenefit.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
+    String text = j['benefit_text'] as String? ?? '';
+    if (langCode == 'hi' && (j['benefit_text_hi'] as String?)?.isNotEmpty == true) {
+      text = j['benefit_text_hi'] as String;
+    } else if (langCode == 'mr' && (j['benefit_text_mr'] as String?)?.isNotEmpty == true) {
+      text = j['benefit_text_mr'] as String;
+    }
+    return SchemeBenefit(
+      text      : text,
+      valueLabel: j['value_label']  as String?,
+      unit      : j['unit']         as String?,
+      iconKey   : j['icon_key']     as String?,
+      sortOrder : j['sort_order']   as int? ?? 0,
+    );
+  }
 }
 
 class SchemeDocument {
@@ -68,12 +79,20 @@ class SchemeDocument {
     required this.name, this.isOptional = false, this.hint, this.sortOrder = 0,
   });
 
-  factory SchemeDocument.fromJson(Map<String, dynamic> j) => SchemeDocument(
-    name      : j['doc_name']    as String? ?? '', // ← FIX
-    isOptional: j['is_optional'] as bool?   ?? false,
-    hint      : j['hint']        as String?,
-    sortOrder : j['sort_order']  as int?    ?? 0,
-  );
+  factory SchemeDocument.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
+    String name = j['doc_name'] as String? ?? '';
+    if (langCode == 'hi' && (j['doc_name_hi'] as String?)?.isNotEmpty == true) {
+      name = j['doc_name_hi'] as String;
+    } else if (langCode == 'mr' && (j['doc_name_mr'] as String?)?.isNotEmpty == true) {
+      name = j['doc_name_mr'] as String;
+    }
+    return SchemeDocument(
+      name      : name,
+      isOptional: j['is_optional'] as bool?   ?? false,
+      hint      : j['hint']        as String?,
+      sortOrder : j['sort_order']  as int?    ?? 0,
+    );
+  }
 }
 
 class SchemeApplyStep {
@@ -85,11 +104,22 @@ class SchemeApplyStep {
     required this.stepNumber, required this.title, required this.description,
   });
 
-  factory SchemeApplyStep.fromJson(Map<String, dynamic> j) => SchemeApplyStep(
-    stepNumber : j['step_number'] as int?    ?? 0,
-    title      : j['title']       as String? ?? '',
-    description: j['description'] as String? ?? '',
-  );
+  factory SchemeApplyStep.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
+    String title = j['title'] as String? ?? '';
+    String desc = j['description'] as String? ?? '';
+    if (langCode == 'hi') {
+      if ((j['title_hi'] as String?)?.isNotEmpty == true) title = j['title_hi'] as String;
+      if ((j['description_hi'] as String?)?.isNotEmpty == true) desc = j['description_hi'] as String;
+    } else if (langCode == 'mr') {
+      if ((j['title_mr'] as String?)?.isNotEmpty == true) title = j['title_mr'] as String;
+      if ((j['description_mr'] as String?)?.isNotEmpty == true) desc = j['description_mr'] as String;
+    }
+    return SchemeApplyStep(
+      stepNumber : j['step_number'] as int?    ?? 0,
+      title      : title,
+      description: desc,
+    );
+  }
 }
 
 class SchemeSimilar {
@@ -99,11 +129,19 @@ class SchemeSimilar {
 
   const SchemeSimilar({required this.title, this.category, this.matchPercent});
 
-  factory SchemeSimilar.fromJson(Map<String, dynamic> j) => SchemeSimilar(
-    title       : j['similar_scheme_title'] as String? ?? '',
-    category    : j['category']             as String?,
-    matchPercent: j['match_percent']        as int?,
-  );
+  factory SchemeSimilar.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
+    String title = j['similar_scheme_title'] as String? ?? '';
+    if (langCode == 'hi' && (j['similar_scheme_title_hi'] as String?)?.isNotEmpty == true) {
+      title = j['similar_scheme_title_hi'] as String;
+    } else if (langCode == 'mr' && (j['similar_scheme_title_mr'] as String?)?.isNotEmpty == true) {
+      title = j['similar_scheme_title_mr'] as String;
+    }
+    return SchemeSimilar(
+      title       : title,
+      category    : j['category']             as String?,
+      matchPercent: j['match_percent']        as int?,
+    );
+  }
 }
 
 class SchemeDetail {
@@ -135,7 +173,7 @@ class SchemeDetail {
     this.similarSchemes = const [],
   });
 
-  factory SchemeDetail.fromJson(Map<String, dynamic> j) {
+  factory SchemeDetail.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
     SchemeEligibility? eligibility;
     final rawElig = j['scheme_eligibility'];
     if (rawElig is List && rawElig.isNotEmpty) {
@@ -144,8 +182,8 @@ class SchemeDetail {
       eligibility = SchemeEligibility.fromJson(rawElig);
     }
 
-    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) fn) =>
-        (raw as List<dynamic>? ?? []).map((e) => fn(e as Map<String, dynamic>)).toList();
+    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>, {String langCode}) fn) =>
+        (raw as List<dynamic>? ?? []).map((e) => fn(e as Map<String, dynamic>, langCode: langCode)).toList();
 
     final tags = (j['scheme_tags'] as List<dynamic>? ?? [])
         .map((t) => (t as Map<String, dynamic>)['tag'] as String? ?? '')
@@ -159,12 +197,22 @@ class SchemeDetail {
     final applySteps = parseList(j['scheme_apply_steps'], SchemeApplyStep.fromJson)
       ..sort((a, b) => a.stepNumber.compareTo(b.stepNumber));
 
+    String title = j['title'] as String? ?? '';
+    String? summary = j['summary'] as String?;
+    if (langCode == 'hi') {
+      if ((j['title_hi'] as String?)?.isNotEmpty == true) title = j['title_hi'] as String;
+      if ((j['summary_hi'] as String?)?.isNotEmpty == true) summary = j['summary_hi'] as String;
+    } else if (langCode == 'mr') {
+      if ((j['title_mr'] as String?)?.isNotEmpty == true) title = j['title_mr'] as String;
+      if ((j['summary_mr'] as String?)?.isNotEmpty == true) summary = j['summary_mr'] as String;
+    }
+
     return SchemeDetail(
       id            : j['id']              as String? ?? '',
-      title         : j['title']           as String? ?? '',
+      title         : title,
       category      : j['category']        as String?,
       state         : j['state']           as String?,
-      summary       : j['summary']         as String?,
+      summary       : summary,
       amount        : j['amount']          as int?,
       officialLink  : j['official_link']   as String?,
       processingDays: j['processing_days'] as int?,
@@ -214,7 +262,13 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
   late TabController _tabController;
   bool _isSaved = false;
 
-  final _tabs = ['Overview', 'Benefits', 'Eligibility', 'Documents', 'How to Apply'];
+  List<String> get _tabs => [
+    AppStrings.t(context, 'tab_overview', 'Overview'),
+    AppStrings.t(context, 'tab_benefits', 'Benefits'),
+    AppStrings.t(context, 'tab_eligibility', 'Eligibility'),
+    AppStrings.t(context, 'tab_documents', 'Documents'),
+    AppStrings.t(context, 'tab_how_to_apply', 'How to Apply'),
+  ];
 
   SchemeDetail get _s => widget.scheme;
   String get _amountLabel     => _s.amount != null ? '₹${_s.amount}' : '—';
@@ -225,7 +279,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -236,7 +290,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
     final raw = _s.officialLink ?? '';
     if (raw.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No official link available.')));
+        SnackBar(content: Text(AppStrings.t(context, 'no_official_link', 'No official link available.'))));
       return;
     }
     final uri = Uri.tryParse(raw);
@@ -245,7 +299,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open: $raw')));
+        SnackBar(content: Text('${AppStrings.t(context, 'could_not_open', 'Could not open:')} $raw')));
     }
   }
 
@@ -355,10 +409,10 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
               boxShadow: [BoxShadow(color: _purple.withOpacity(0.35),
                   blurRadius: 16, offset: const Offset(0, 6))],
             ),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('Apply Now', style: TextStyle(color: Colors.white,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(AppStrings.t(context, 'apply_now', 'Apply Now'), style: const TextStyle(color: Colors.white,
                   fontWeight: FontWeight.w700, fontSize: 15)),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
             ]),
           ),
@@ -408,11 +462,11 @@ class _HeroContent extends StatelessWidget {
                     fontSize: 19, fontWeight: FontWeight.w700, height: 1.3)),
             const SizedBox(height: 12),
             Row(children: [
-              _HeroStat(value: amountLabel,     label: 'Per month'),
+              _HeroStat(value: amountLabel,     label: AppStrings.t(context, 'per_month', 'Per month')),
               const SizedBox(width: 8),
-              _HeroStat(value: disabilityLabel, label: 'Min. disability'),
+              _HeroStat(value: disabilityLabel, label: AppStrings.t(context, 'min_disability', 'Min. disability')),
               const SizedBox(width: 8),
-              _HeroStat(value: processingLabel, label: 'Processing'),
+              _HeroStat(value: processingLabel, label: AppStrings.t(context, 'processing', 'Processing')),
             ]),
           ]),
         ),
@@ -536,22 +590,22 @@ class _OverviewTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
       _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardHeader(icon: Icons.info_outline_rounded,
-            iconBg: _purpleLight, iconColor: _purple, title: 'About this scheme'),
+        _CardHeader(icon: Icons.info_outline_rounded,
+            iconBg: _purpleLight, iconColor: _purple, title: AppStrings.t(context, 'about_scheme', 'About this scheme')),
         const SizedBox(height: 12),
-        Text(scheme.summary?.isNotEmpty == true ? scheme.summary! : 'No description available.',
+        Text(scheme.summary?.isNotEmpty == true ? scheme.summary! : AppStrings.t(context, 'no_description', 'No description available.'),
             style: const TextStyle(fontSize: 13, color: _textSub, height: 1.7)),
       ])),
       const SizedBox(height: 12),
       _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardHeader(icon: Icons.analytics_outlined,
-            iconBg: Color(0xFFEAF3DE), iconColor: _green, title: 'Your match score'),
+        _CardHeader(icon: Icons.analytics_outlined,
+            iconBg: const Color(0xFFEAF3DE), iconColor: _green, title: AppStrings.t(context, 'your_match_score', 'Your match score')),
         const SizedBox(height: 14),
         Row(children: [
           const Text('87%', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: _purple)),
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Profile compatibility', style: TextStyle(fontSize: 12, color: _textSub)),
+            Text(AppStrings.t(context, 'profile_compatibility', 'Profile compatibility'), style: const TextStyle(fontSize: 12, color: _textSub)),
             const SizedBox(height: 6),
             ClipRRect(borderRadius: BorderRadius.circular(100),
               child: const LinearProgressIndicator(value: 0.87, backgroundColor: _purpleLight,
@@ -559,14 +613,14 @@ class _OverviewTab extends StatelessWidget {
           ])),
         ]),
         const SizedBox(height: 8),
-        const Text('You meet eligibility criteria based on your profile.',
-            style: TextStyle(fontSize: 12, color: _textSub)),
+        Text(AppStrings.t(context, 'meet_eligibility', 'You meet eligibility criteria based on your profile.'),
+            style: const TextStyle(fontSize: 12, color: _textSub)),
       ])),
       const SizedBox(height: 12),
       _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardHeader(icon: Icons.volume_up_rounded,
-            iconBg: Color(0xFFFDF2FA), iconColor: Color(0xFFBE185D),
-            title: 'Listen to this scheme'),
+        _CardHeader(icon: Icons.volume_up_rounded,
+            iconBg: const Color(0xFFFDF2FA), iconColor: const Color(0xFFBE185D),
+            title: AppStrings.t(context, 'listen_scheme', 'Listen to this scheme')),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
@@ -587,10 +641,10 @@ class _OverviewTab extends StatelessWidget {
               ),
             )))),
             const SizedBox(width: 10),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: const [
-              Text('Read Aloud', style: TextStyle(fontSize: 12,
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text(AppStrings.t(context, 'read_aloud', 'Read Aloud'), style: const TextStyle(fontSize: 12,
                   fontWeight: FontWeight.w600, color: Color(0xFFBE185D))),
-              Text('Hindi · English · Marathi',
+              const Text('Hindi · English · Marathi',
                   style: TextStyle(fontSize: 10, color: _textSub)),
             ]),
           ]),
@@ -637,20 +691,20 @@ class _BenefitsTab extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
     Row(children: [
-      _MiniStat(value: _annual, label: 'Annual value', bg: _purpleLight, textColor: _purple),
+      _MiniStat(value: _annual, label: AppStrings.t(context, 'annual_value', 'Annual value'), bg: _purpleLight, textColor: _purple),
       const SizedBox(width: 10),
-      _MiniStat(value: '${benefits.length}', label: 'Total benefits', bg: _greenLight, textColor: _green),
+      _MiniStat(value: '${benefits.length}', label: AppStrings.t(context, 'total_benefits', 'Total benefits'), bg: _greenLight, textColor: _green),
       const SizedBox(width: 10),
-      _MiniStat(value: 'Direct', label: 'Transfer mode', bg: _blueLight, textColor: _blue),
+      _MiniStat(value: AppStrings.t(context, 'direct', 'Direct'), label: AppStrings.t(context, 'transfer_mode', 'Transfer mode'), bg: _blueLight, textColor: _blue),
     ]),
     const SizedBox(height: 12),
     _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const _CardHeader(icon: Icons.checklist_rounded, iconBg: _purpleLight, iconColor: _purple,
-          title: 'All benefits', subtitle: 'What you receive under this scheme'),
+      _CardHeader(icon: Icons.checklist_rounded, iconBg: _purpleLight, iconColor: _purple,
+          title: AppStrings.t(context, 'all_benefits', 'All benefits'), subtitle: AppStrings.t(context, 'what_you_receive', 'What you receive under this scheme')),
       const SizedBox(height: 12),
       if (benefits.isEmpty)
-        const Padding(padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('No benefits listed.', style: TextStyle(fontSize: 13, color: _textSub)))
+        Padding(padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Text(AppStrings.t(context, 'no_benefits', 'No benefits listed.'), style: const TextStyle(fontSize: 13, color: _textSub)))
       else
         ...List.generate(benefits.length, (i) {
           final b = benefits[i];
@@ -670,10 +724,10 @@ class _BenefitsTab extends StatelessWidget {
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(color: _amberLight, borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFFDE68A), width: 1.5)),
-      child: Row(children: const [
-        Icon(Icons.warning_amber_rounded, color: _amber, size: 16), SizedBox(width: 10),
-        Expanded(child: Text('Benefit amounts may be revised by the government.',
-            style: TextStyle(fontSize: 11, color: _amber, height: 1.5))),
+      child: Row(children: [
+        const Icon(Icons.warning_amber_rounded, color: _amber, size: 16), const SizedBox(width: 10),
+        Expanded(child: Text(AppStrings.t(context, 'benefit_amounts_revised', 'Benefit amounts may be revised by the government.'),
+            style: const TextStyle(fontSize: 11, color: _amber, height: 1.5))),
       ]),
     ),
   ]);
@@ -757,9 +811,9 @@ class _EligibilityTab extends StatelessWidget {
               child: const Icon(Icons.check_rounded, color: _green, size: 20)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('You likely qualify', style: TextStyle(fontSize: 13,
+            Text(AppStrings.t(context, 'likely_qualify', 'You likely qualify'), style: const TextStyle(fontSize: 13,
                 fontWeight: FontWeight.w700, color: _green)),
-            Text(total > 0 ? '$passed of $total criteria met' : 'Check criteria below',
+            Text(total > 0 ? '$passed of $total ${AppStrings.t(context, 'criteria_met', 'criteria met')}' : AppStrings.t(context, 'check_criteria_below', 'Check criteria below'),
                 style: const TextStyle(fontSize: 11, color: _textSub)),
             if (total > 0) ...[
               const SizedBox(height: 6),
@@ -776,12 +830,12 @@ class _EligibilityTab extends StatelessWidget {
       ),
       const SizedBox(height: 12),
       _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardHeader(icon: Icons.person_outline_rounded, iconBg: _purpleLight,
-            iconColor: _purple, title: 'Criteria check', subtitle: 'Based on your profile data'),
+        _CardHeader(icon: Icons.person_outline_rounded, iconBg: _purpleLight,
+            iconColor: _purple, title: AppStrings.t(context, 'criteria_check', 'Criteria check'), subtitle: AppStrings.t(context, 'based_on_profile', 'Based on your profile data')),
         const SizedBox(height: 12),
         if (criteria.isEmpty)
-          const Text('No eligibility criteria available.',
-              style: TextStyle(fontSize: 13, color: _textSub))
+          Text(AppStrings.t(context, 'no_eligibility_criteria', 'No eligibility criteria available.'),
+              style: const TextStyle(fontSize: 13, color: _textSub))
         else
           ...criteria.asMap().entries.map((e) => _EligibilityRow(
             label: e.value['label']!, status: e.value['status']!,
@@ -792,25 +846,25 @@ class _EligibilityTab extends StatelessWidget {
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(color: _amberLight, borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFFDE68A), width: 1.5)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-          Icon(Icons.info_rounded, color: _amber, size: 15), SizedBox(width: 9),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.info_rounded, color: _amber, size: 15), const SizedBox(width: 9),
           Expanded(child: Text(
-            'You can still apply if unsure — the officer will verify during the home visit.',
-            style: TextStyle(fontSize: 11, color: _amber, height: 1.5))),
+            AppStrings.t(context, 'apply_if_unsure', 'You can still apply if unsure — the officer will verify during the home visit.'),
+            style: const TextStyle(fontSize: 11, color: _amber, height: 1.5))),
         ]),
       ),
       if (similarSchemes.isNotEmpty) ...[
         const SizedBox(height: 12),
         _SectionCard(padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Similar schemes you also qualify for',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textMain)),
+            Text(AppStrings.t(context, 'similar_schemes_qualify', 'Similar schemes you also qualify for'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textMain)),
             const SizedBox(height: 10),
             ...similarSchemes.map((ss) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _SimilarSchemeRow(icon: Icons.description_outlined,
                 iconBg: _blueLight, iconColor: _blue, title: ss.title,
-                subtitle: ss.matchPercent != null ? '${ss.matchPercent}% match' : ss.category ?? ''),
+                subtitle: ss.matchPercent != null ? '${ss.matchPercent}% ${AppStrings.t(context, 'match', 'match')}' : ss.category ?? ''),
             )),
           ])),
       ],
@@ -872,13 +926,48 @@ class _SimilarSchemeRow extends StatelessWidget {
 // ─────────────────────────────────────────────
 //  TAB 4 — DOCUMENTS  ← FIX: shows doc name + hint
 // ─────────────────────────────────────────────
-class _DocumentsTab extends StatelessWidget {
+class _DocumentsTab extends StatefulWidget {
   final List<SchemeDocument> documents;
   const _DocumentsTab({required this.documents});
 
-  String _status(SchemeDocument d, int i) {
+  @override
+  State<_DocumentsTab> createState() => _DocumentsTabState();
+}
+
+class _DocumentsTabState extends State<_DocumentsTab> {
+  List<Map<String, dynamic>> _vaultDocs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVaultDocs();
+  }
+
+  Future<void> _loadVaultDocs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList('vault_documents') ?? [];
+    if (!mounted) return;
+    setState(() {
+      _vaultDocs = raw.map((s) {
+        try { return json.decode(s) as Map<String, dynamic>; } catch(_) { return <String, dynamic>{}; }
+      }).toList();
+    });
+  }
+
+  String _status(SchemeDocument d) {
     if (d.isOptional) return 'optional';
-    if (i < 2) return 'uploaded'; // mock — replace with real vault check
+    final name = d.name.toLowerCase();
+    for (final v in _vaultDocs) {
+      final title = (v['title'] as String? ?? '').toLowerCase();
+      if (title.isEmpty) continue;
+      if (name.contains(title) || title.contains(name)) return 'uploaded';
+      if (name.contains('aadhaar') && title.contains('aadhaar')) return 'uploaded';
+      if (name.contains('pan') && title.contains('pan')) return 'uploaded';
+      if (name.contains('disability') && title.contains('disability')) return 'uploaded';
+      if ((name.contains('bank') || name.contains('passbook')) && 
+          (title.contains('bank') || title.contains('passbook'))) return 'uploaded';
+      if (name.contains('income') && title.contains('income')) return 'uploaded';
+    }
     return 'missing';
   }
 
@@ -896,22 +985,22 @@ class _DocumentsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final required = documents.where((d) => !d.isOptional).toList();
-    final optional = documents.where((d) =>  d.isOptional).toList();
+    final required = widget.documents.where((d) => !d.isOptional).toList();
+    final optional = widget.documents.where((d) =>  d.isOptional).toList();
     int uploaded = 0;
     for (int i = 0; i < required.length; i++) {
-      if (_status(required[i], i) == 'uploaded') uploaded++;
+      if (_status(required[i]) == 'uploaded') uploaded++;
     }
     final missing   = required.length - uploaded;
     final readiness = required.isEmpty ? 0.0 : uploaded / required.length;
 
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
       Row(children: [
-        _MiniStat(value: '$uploaded', label: 'Uploaded', bg: _greenLight, textColor: _green),
+        _MiniStat(value: '$uploaded', label: AppStrings.t(context, 'uploaded', 'Uploaded'), bg: _purpleLight, textColor: _purple),
         const SizedBox(width: 10),
-        _MiniStat(value: '$missing',  label: 'Missing',  bg: _redLight,   textColor: _red),
+        _MiniStat(value: '$missing',  label: AppStrings.t(context, 'missing', 'Missing'),  bg: _redLight,   textColor: _red),
         const SizedBox(width: 10),
-        _MiniStat(value: '${optional.length}', label: 'Optional', bg: _purpleLight, textColor: _purple),
+        _MiniStat(value: '${optional.length}', label: AppStrings.t(context, 'optional', 'Optional'), bg: _purpleLight, textColor: _purple),
       ]),
       const SizedBox(height: 12),
       Container(
@@ -920,7 +1009,7 @@ class _DocumentsTab extends StatelessWidget {
             border: Border.all(color: _cardBorder, width: 1.5)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Document readiness', style: TextStyle(fontSize: 12,
+            Text(AppStrings.t(context, 'document_readiness', 'Document readiness'), style: const TextStyle(fontSize: 12,
                 fontWeight: FontWeight.w600, color: _textMain)),
             Text('${(readiness * 100).round()}%', style: const TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w700, color: _purple)),
@@ -931,46 +1020,50 @@ class _DocumentsTab extends StatelessWidget {
                 valueColor: const AlwaysStoppedAnimation<Color>(_purple), minHeight: 5)),
           const SizedBox(height: 6),
           Text(missing > 0
-              ? 'Upload $missing more document${missing > 1 ? 's' : ''} to apply'
-              : 'All required documents ready!',
+              ? AppStrings.t(context, 'upload_missing_docs', 'Upload $missing more document(s) to apply')
+              : AppStrings.t(context, 'all_docs_ready', 'All required documents ready!'),
               style: const TextStyle(fontSize: 11, color: _textSub)),
         ]),
       ),
       const SizedBox(height: 12),
       _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _CardHeader(icon: Icons.folder_outlined, iconBg: _purpleLight, iconColor: _purple,
-            title: 'Required documents', subtitle: 'Must submit to complete application'),
+        _CardHeader(icon: Icons.folder_outlined, iconBg: _purpleLight, iconColor: _purple,
+            title: AppStrings.t(context, 'required_documents', 'Required documents'), subtitle: AppStrings.t(context, 'must_submit_app', 'Must submit to complete application')),
         const SizedBox(height: 12),
-        if (documents.isEmpty)
-          const Text('No documents listed.', style: TextStyle(fontSize: 13, color: _textSub))
+        if (widget.documents.isEmpty)
+          Text(AppStrings.t(context, 'no_documents', 'No documents listed.'), style: const TextStyle(fontSize: 13, color: _textSub))
         else
-          ...documents.asMap().entries.map((e) => _DocumentRow(
+          ...widget.documents.asMap().entries.map((e) => _DocumentRow(
             icon  : _icon(e.value.name),
-            name  : e.value.name,         // ← reads doc_name from Supabase
-            hint  : e.value.hint,         // ← reads hint from Supabase
-            status: _status(e.value, e.key),
-            isLast: e.key == documents.length - 1,
+            name  : e.value.name,
+            hint  : e.value.hint,
+            status: _status(e.value),
+            isLast: e.key == widget.documents.length - 1,
           )),
       ])),
       const SizedBox(height: 12),
-      GestureDetector(onTap: () {},
+      GestureDetector(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => DocumentVault(onBack: () => Navigator.pop(context))))
+              .then((_) => _loadVaultDocs());
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFC4B5FD), width: 1.5)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
-            Icon(Icons.upload_file_rounded, color: _purple, size: 16), SizedBox(width: 8),
-            Text('Upload missing documents',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _purple)),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.upload_file_rounded, color: _purple, size: 16), const SizedBox(width: 8),
+            Text(AppStrings.t(context, 'go_to_vault', 'Go to Document Vault'),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _purple)),
           ]),
         )),
       if (optional.isNotEmpty) ...[
         const SizedBox(height: 12),
         _SectionCard(padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const _CardHeader(icon: Icons.info_outline_rounded, iconBg: _purpleLight,
-                iconColor: _purple, title: 'Optional documents',
-                subtitle: 'Speeds up processing if submitted'),
+            _CardHeader(icon: Icons.info_outline_rounded, iconBg: _purpleLight,
+                iconColor: _purple, title: AppStrings.t(context, 'optional_documents', 'Optional documents'),
+                subtitle: AppStrings.t(context, 'speeds_up_processing', 'Speeds up processing if submitted')),
             const SizedBox(height: 12),
             ...optional.asMap().entries.map((e) => _DocumentRow(
               icon: _icon(e.value.name), name: e.value.name,
@@ -984,10 +1077,10 @@ class _DocumentsTab extends StatelessWidget {
         decoration: BoxDecoration(color: const Color(0xFFF0F9FF),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-          Icon(Icons.info_rounded, color: _blue, size: 15), SizedBox(width: 9),
-          Expanded(child: Text('Files must be PDF or JPG, under 2MB each.',
-              style: TextStyle(fontSize: 11, color: _blue, height: 1.5))),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.info_rounded, color: _blue, size: 15), const SizedBox(width: 9),
+          Expanded(child: Text(AppStrings.t(context, 'file_rules', 'Files must be PDF or JPG, under 2MB each.'),
+              style: const TextStyle(fontSize: 11, color: _blue, height: 1.5))),
         ]),
       ),
     ]);
@@ -1000,7 +1093,7 @@ class _DocumentRow extends StatelessWidget {
       required this.status, required this.isLast, this.hint});
   Color get _iconBg    => status=='uploaded' ? _greenLight : status=='missing' ? _redLight  : _purpleLight;
   Color get _iconColor => status=='uploaded' ? _green      : status=='missing' ? _red       : _purple;
-  String get _tagLabel => status=='uploaded' ? 'Uploaded'  : status=='missing' ? 'Missing'  : 'Optional';
+  String _tagLabel(BuildContext context) => status=='uploaded' ? AppStrings.t(context, 'uploaded', 'Uploaded')  : status=='missing' ? AppStrings.t(context, 'missing', 'Missing')  : AppStrings.t(context, 'optional', 'Optional');
   Color get _tagBg     => status=='uploaded' ? _greenLight : status=='missing' ? _redLight  : _purpleLight;
   Color get _tagColor  => status=='uploaded' ? _green      : status=='missing' ? _red       : _purple;
   @override
@@ -1013,13 +1106,13 @@ class _DocumentRow extends StatelessWidget {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textMain)),
-        Text(hint ?? 'Original · Self-attested', maxLines: 1, overflow: TextOverflow.ellipsis,
+        Text(hint ?? AppStrings.t(context, 'original_self_attested', 'Original · Self-attested'), maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 10, color: _textSub)),
       ])),
       const SizedBox(width: 8),
       Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
           decoration: BoxDecoration(color: _tagBg, borderRadius: BorderRadius.circular(100)),
-          child: Text(_tagLabel, style: TextStyle(fontSize: 10,
+          child: Text(_tagLabel(context), style: TextStyle(fontSize: 10,
               fontWeight: FontWeight.w600, color: _tagColor))),
     ])),
     if (!isLast) const Divider(height: 1, color: Color(0xFFF3F0FF)),
@@ -1034,22 +1127,20 @@ class _HowToApplyTab extends StatelessWidget {
   final String? helpline;
   const _HowToApplyTab({required this.applySteps, this.helpline});
 
-  String _stepStatus(int i) => i == 0 ? 'done' : i == 1 ? 'active' : 'pending';
-
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), children: [
     _SectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const _CardHeader(icon: Icons.timeline_rounded, iconBg: _purpleLight,
-          iconColor: _purple, title: 'Application process'),
+      _CardHeader(icon: Icons.timeline_rounded, iconBg: _purpleLight,
+          iconColor: _purple, title: AppStrings.t(context, 'application_process', 'Application process')),
       const SizedBox(height: 16),
       if (applySteps.isEmpty)
-        const Text('No steps available. Visit the official link to apply.',
-            style: TextStyle(fontSize: 13, color: _textSub))
+        Text(AppStrings.t(context, 'no_steps_apply', 'No steps available. Visit the official link to apply.'),
+            style: const TextStyle(fontSize: 13, color: _textSub))
       else
         ...applySteps.asMap().entries.map((e) => _TimelineStep(
           title: e.value.title, sub: e.value.description,
-          status: _stepStatus(e.key), isLast: e.key == applySteps.length - 1)),
+          isLast: e.key == applySteps.length - 1)),
     ])),
     if (helpline != null && helpline!.isNotEmpty) ...[
       const SizedBox(height: 12),
@@ -1063,9 +1154,9 @@ class _HowToApplyTab extends StatelessWidget {
               child: const Icon(Icons.phone_rounded, color: Colors.white, size: 18)),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Need help applying?', style: TextStyle(fontSize: 13,
+            Text(AppStrings.t(context, 'need_help_applying', 'Need help applying?'), style: const TextStyle(fontSize: 13,
                 fontWeight: FontWeight.w600, color: _textMain)),
-            Text('Call: $helpline', style: const TextStyle(
+            Text('${AppStrings.t(context, 'call', 'Call:')} $helpline', style: const TextStyle(
                 fontSize: 12, color: _purple, fontWeight: FontWeight.w500)),
           ]),
         ]),
@@ -1075,22 +1166,16 @@ class _HowToApplyTab extends StatelessWidget {
 }
 
 class _TimelineStep extends StatelessWidget {
-  final String title, sub, status; final bool isLast;
-  const _TimelineStep({required this.title, required this.sub,
-      required this.status, required this.isLast});
-  Color get _dotBg     => status=='done' ? _purple : Colors.white;
-  Color get _dotBorder => status=='pending' ? const Color(0xFFE5E7EB) : _purple;
-  Color get _badgeBg   => status=='done' ? _purpleLight : status=='active' ? _amberLight : const Color(0xFFF3F4F6);
-  Color get _badgeColor=> status=='done' ? _purple : status=='active' ? _amber : _textSub;
-  String get _label    => status=='done' ? 'Completed' : status=='active' ? 'In progress' : 'Pending';
+  final String title, sub; final bool isLast;
+  const _TimelineStep({required this.title, required this.sub, required this.isLast});
+
   @override
   Widget build(BuildContext context) => IntrinsicHeight(
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Column(children: [
         Container(width: 14, height: 14,
-            decoration: BoxDecoration(color: _dotBg, shape: BoxShape.circle,
-                border: Border.all(color: _dotBorder, width: 2)),
-            child: status=='done' ? const Icon(Icons.check, color: Colors.white, size: 8) : null),
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle,
+                border: Border.all(color: _purple, width: 2))),
         if (!isLast) Expanded(child: Container(width: 2,
             margin: const EdgeInsets.symmetric(vertical: 4), color: _purpleLight)),
       ]),
@@ -1102,11 +1187,6 @@ class _TimelineStep extends StatelessWidget {
               fontWeight: FontWeight.w600, color: _textMain)),
           const SizedBox(height: 2),
           Text(sub, style: const TextStyle(fontSize: 11, color: _textSub)),
-          const SizedBox(height: 5),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(color: _badgeBg, borderRadius: BorderRadius.circular(100)),
-              child: Text(_label, style: TextStyle(fontSize: 10,
-                  fontWeight: FontWeight.w600, color: _badgeColor))),
         ]),
       )),
     ]),
