@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
@@ -21,15 +22,24 @@ const _textSub     = Color(0xFF6B7280);
 //  MODEL: Emergency Contact
 // ─────────────────────────────────────────────
 class EmergencyContact {
+  final String id; // UUID from Supabase
   final String name;
   final String relation;
-  String phone;
+  final String phone;
 
   EmergencyContact({
+    required this.id,
     required this.name,
     required this.relation,
     required this.phone,
   });
+
+  factory EmergencyContact.fromJson(Map<String, dynamic> j) => EmergencyContact(
+    id      : j['id']       as String,
+    name    : j['name']     as String,
+    relation: j['relation'] as String? ?? '',
+    phone   : j['phone']    as String,
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -62,12 +72,14 @@ class _EmergencySOSState extends State<EmergencySOS>
   // Location sharing toggle
   bool _locationSharing = false;
 
-  // Emergency contacts (empty by default — user adds own)
-  final List<EmergencyContact> _contacts = [];
+  // Emergency contacts — loaded from Supabase
+  List<EmergencyContact> _contacts = [];
+  bool _loadingContacts = true;
 
   @override
   void initState() {
     super.initState();
+    _loadContacts();
 
     _pulseCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200))
@@ -85,6 +97,58 @@ class _EmergencySOSState extends State<EmergencySOS>
             CurvedAnimation(
                 parent: _entryCtrl,
                 curve: const Interval(0.0, 0.7, curve: Curves.easeOut)));
+  }
+
+  // ── Supabase CRUD ──────────────────────────────────────────
+  Future<void> _loadContacts() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _loadingContacts = false);
+      return;
+    }
+    try {
+      final data = await Supabase.instance.client
+          .from('emergency_contacts')
+          .select()
+          .eq('user_id', user.id)
+          .order('created_at');
+      if (!mounted) return;
+      setState(() {
+        _contacts = (data as List)
+            .map((j) => EmergencyContact.fromJson(j as Map<String, dynamic>))
+            .toList();
+        _loadingContacts = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _loadingContacts = false);
+      debugPrint('Load contacts error: $e');
+    }
+  }
+
+  Future<void> _supabaseAddContact(EmergencyContact c) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    await Supabase.instance.client.from('emergency_contacts').insert({
+      'id'      : c.id,
+      'user_id' : user.id,
+      'name'    : c.name,
+      'relation': c.relation,
+      'phone'   : c.phone,
+    });
+  }
+
+  Future<void> _supabaseUpdateContact(EmergencyContact c) async {
+    await Supabase.instance.client
+        .from('emergency_contacts')
+        .update({'name': c.name, 'relation': c.relation, 'phone': c.phone})
+        .eq('id', c.id);
+  }
+
+  Future<void> _supabaseDeleteContact(String id) async {
+    await Supabase.instance.client
+        .from('emergency_contacts')
+        .delete()
+        .eq('id', id);
   }
 
   @override
@@ -144,81 +208,100 @@ class _EmergencySOSState extends State<EmergencySOS>
     await launchUrl(Uri.parse('tel:$clean'));
   }
 
-  // ── Add Contact Dialog ──────────────────────────────────────
+  // ── Add / Edit Contact Dialog ───────────────────────────────
   void _showAddContactDialog({EmergencyContact? existing, int? index}) {
-    final nameCtrl = TextEditingController(text: existing?.name ?? '');
-    final relCtrl  = TextEditingController(text: existing?.relation ?? '');
-    final phoneCtrl= TextEditingController(text: existing?.phone ?? '');
-    final formKey  = GlobalKey<FormState>();
+    final nameCtrl  = TextEditingController(text: existing?.name ?? '');
+    final relCtrl   = TextEditingController(text: existing?.relation ?? '');
+    final phoneCtrl = TextEditingController(text: existing?.phone ?? '');
+    final formKey   = GlobalKey<FormState>();
+    bool isSaving   = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
-        title: Text(
-          existing == null ? 'Add Emergency Contact' : 'Edit Contact',
-          style: const TextStyle(
-              fontSize: 18, fontWeight: FontWeight.w700, color: _textMain),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _dialogField('Full Name', nameCtrl, Icons.person_outline_rounded,
-                  validator: (v) => v!.trim().isEmpty ? 'Name required' : null),
-              const SizedBox(height: 12),
-              _dialogField('Relation (e.g. Brother)', relCtrl,
-                  Icons.people_outline_rounded),
-              const SizedBox(height: 12),
-              _dialogField('Phone Number', phoneCtrl, Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      v!.replaceAll(RegExp(r'[^0-9]'), '').length < 10
-                          ? 'Valid phone required'
-                          : null),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
+          title: Text(
+            existing == null ? 'Add Emergency Contact' : 'Edit Contact',
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w700, color: _textMain),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: _textSub, fontWeight: FontWeight.w600)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              final contact = EmergencyContact(
-                name: nameCtrl.text.trim(),
-                relation: relCtrl.text.trim(),
-                phone: phoneCtrl.text.trim(),
-              );
-              setState(() {
-                if (index != null) {
-                  _contacts[index] = contact;
-                } else {
-                  _contacts.add(contact);
-                }
-              });
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _dialogField('Full Name', nameCtrl, Icons.person_outline_rounded,
+                    validator: (v) => v!.trim().isEmpty ? 'Name required' : null),
+                const SizedBox(height: 12),
+                _dialogField('Relation (e.g. Brother)', relCtrl,
+                    Icons.people_outline_rounded),
+                const SizedBox(height: 12),
+                _dialogField('Phone Number', phoneCtrl, Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) =>
+                        v!.replaceAll(RegExp(r'[^0-9]'), '').length < 10
+                            ? 'Valid phone required'
+                            : null),
+              ],
             ),
-            child: Text(existing == null ? 'Add' : 'Save',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700)),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel',
+                  style: TextStyle(color: _textSub, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: isSaving ? null : () async {
+                if (!formKey.currentState!.validate()) return;
+                setDlg(() => isSaving = true);
+                // Generate a UUID locally so we can pass it to Supabase
+                final newId = existing?.id ??
+                    '${DateTime.now().millisecondsSinceEpoch}-${nameCtrl.text.trim().hashCode.abs()}';
+                final contact = EmergencyContact(
+                  id      : newId,
+                  name    : nameCtrl.text.trim(),
+                  relation: relCtrl.text.trim(),
+                  phone   : phoneCtrl.text.trim(),
+                );
+                try {
+                  if (existing == null) {
+                    await _supabaseAddContact(contact);
+                    if (mounted) setState(() => _contacts.add(contact));
+                  } else {
+                    await _supabaseUpdateContact(contact);
+                    if (mounted) setState(() => _contacts[index!] = contact);
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  setDlg(() => isSaving = false);
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Failed to save. Check your connection.')));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: isSaving
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(existing == null ? 'Add' : 'Save',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -259,7 +342,13 @@ class _EmergencySOSState extends State<EmergencySOS>
 
   // ── DELETE CONTACT ──────────────────────────
   void _deleteContact(int index) {
+    final contact = _contacts[index];
     setState(() => _contacts.removeAt(index));
+    _supabaseDeleteContact(contact.id).catchError((e) {
+      debugPrint('Delete contact error: $e');
+      // Re-add on failure
+      if (mounted) setState(() => _contacts.insert(index, contact));
+    });
   }
 
   // ═══════════════════════════════════════════
@@ -666,6 +755,20 @@ class _EmergencySOSState extends State<EmergencySOS>
   //  CONTACTS LIST
   // ─────────────────────────────────────────────
   Widget _buildContactsList() {
+    // Show loader while fetching from Supabase
+    if (_loadingContacts) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _cardBorder, width: 1.5),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: _purple)),
+      );
+    }
     return Column(
       children: [
         if (_contacts.isEmpty)
