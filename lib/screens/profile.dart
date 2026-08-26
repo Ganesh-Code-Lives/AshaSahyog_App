@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'language_selection.dart';
 import 'support.dart';
 import '../l10n/app_strings.dart';
+import '../scheme_recommendation/eligibility_info_sheet.dart';
 
 class Profile extends StatefulWidget {
   final VoidCallback onBack;
@@ -64,11 +65,27 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     'Wheelchair', 'Crutches', 'Hearing Aid', 'Prosthetic Limb', 'White Cane', 'Walking Stick'
   ];
 
+  int? _annualIncome;
+  bool? _hasAadhaar;
+  bool? _hasBankAccount;
+
+  Future<void> _loadEligibilityPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _annualIncome = prefs.getInt('annualIncome');
+        _hasAadhaar = prefs.getBool('hasAadhaar');
+        _hasBankAccount = prefs.getBool('hasBankAccount');
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _loadProfileImage();
     _initControllers();
+    _loadEligibilityPrefs();
 
     _controller = AnimationController(
       duration: const Duration(milliseconds: 700),
@@ -757,6 +774,45 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                   ],
                                 ),
                               ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _SectionCard(
+                          title: 'Scheme Eligibility & Financials',
+                          icon: Icons.account_balance_wallet_outlined,
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit, color: AppTheme.primary, size: 20),
+                            onPressed: () {
+                              EligibilityInfoSheet.show(context, onSaved: () {
+                                _loadEligibilityPrefs();
+                                widget.onProfileUpdated?.call();
+                              });
+                            },
+                          ),
+                          children: [
+                            _InfoRow(
+                              label: 'Annual Family Income',
+                              value: _annualIncome != null
+                                  ? '₹${_annualIncome!.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
+                                  : 'Not specified',
+                            ),
+                            _InfoDivider(),
+                            _InfoRow(
+                              label: 'Aadhaar Card',
+                              value: _hasAadhaar == null
+                                  ? 'Not specified'
+                                  : (_hasAadhaar! ? 'Available' : 'Not available'),
+                            ),
+                            _InfoDivider(),
+                            _InfoRow(
+                              label: 'Bank Account',
+                              value: _hasBankAccount == null
+                                  ? 'Not specified'
+                                  : (_hasBankAccount! ? 'Available' : 'Not available'),
+                              isLast: true,
+                            ),
                           ],
                         ),
 

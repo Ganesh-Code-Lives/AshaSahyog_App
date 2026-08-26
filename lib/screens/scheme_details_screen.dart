@@ -6,6 +6,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_strings.dart';
 import 'document_vault.dart';
+import '../scheme_recommendation/user_eligibility_profile.dart';
+import '../scheme_recommendation/eligibility_engine.dart';
+import '../scheme_recommendation/recommendation_service.dart';
 // ─────────────────────────────────────────────
 //  DATA MODELS — field names match Supabase exactly
 // ─────────────────────────────────────────────
@@ -335,10 +338,36 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
   String get _processingLabel =>
       _s.processingDays != null ? '${_s.processingDays}d' : '—';
 
+  UserEligibilityProfile? _userProfile;
+  EligibilityResult? _eligibilityResult;
+  int _matchScore = 0;
+  bool _loadingEligibility = true;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _loadUserEligibility();
+  }
+
+  Future<void> _loadUserEligibility() async {
+    try {
+      final user = await RecommendationService().getUserProfile();
+      final eval = RecommendationService().evaluateScheme(
+        detail: _s,
+        user: user,
+      );
+      if (mounted) {
+        setState(() {
+          _userProfile = user;
+          _eligibilityResult = eval.result;
+          _matchScore = eval.score;
+          _loadingEligibility = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingEligibility = false);
+    }
   }
 
   @override
@@ -395,11 +424,17 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _OverviewTab(scheme: _s),
+                  _OverviewTab(
+                    scheme: _s,
+                    matchScore: _matchScore,
+                    eligibilityResult: _eligibilityResult,
+                    loadingEligibility: _loadingEligibility,
+                  ),
                   _BenefitsTab(benefits: _s.benefits, amount: _s.amount),
                   _EligibilityTab(
                     eligibility: _s.eligibility,
                     similarSchemes: _s.similarSchemes,
+                    userProfile: _userProfile,
                   ),
                   _DocumentsTab(documents: _s.documents),
                   _HowToApplyTab(
@@ -918,7 +953,16 @@ class _MiniStat extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _OverviewTab extends StatefulWidget {
   final SchemeDetail scheme;
-  const _OverviewTab({required this.scheme});
+  final int? matchScore;
+  final EligibilityResult? eligibilityResult;
+  final bool? loadingEligibility;
+
+  const _OverviewTab({
+    required this.scheme,
+    this.matchScore = 0,
+    this.eligibilityResult,
+    this.loadingEligibility = false,
+  });
   @override
   State<_OverviewTab> createState() => _OverviewTabState();
 }
@@ -1060,68 +1104,108 @@ class _OverviewTabState extends State<_OverviewTab> {
         ),
         const SizedBox(height: 12),
         _SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _CardHeader(
-                icon: Icons.analytics_outlined,
-                iconBg: const Color(0xFFEAF3DE),
-                iconColor: _green,
-                title: AppStrings.t(
+          child: Builder(
+            builder: (context) {
+              final isLoading = widget.loadingEligibility ?? false;
+              final score = widget.matchScore ?? 0;
+              final status = widget.eligibilityResult?.status;
+              Color scoreColor;
+              Color scoreBg;
+              String statusLabel;
+              String statusDescription;
+
+              if (isLoading) {
+                scoreColor = _purple;
+                scoreBg = _purpleLight;
+                statusLabel = AppStrings.t(
                   context,
-                  'your_match_score',
-                  'Your match score',
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  const Text(
-                    '87%',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: _purple,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppStrings.t(
-                            context,
-                            'profile_compatibility',
-                            'Profile compatibility',
-                          ),
-                          style: const TextStyle(fontSize: 12, color: _textSub),
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(100),
-                          child: const LinearProgressIndicator(
-                            value: 0.87,
-                            backgroundColor: _purpleLight,
-                            valueColor: AlwaysStoppedAnimation<Color>(_purple),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppStrings.t(
+                  'profile_compatibility',
+                  'Profile compatibility',
+                );
+                statusDescription = 'Evaluating against your profile details...';
+              } else if (status == EligibilityStatus.eligible) {
+                scoreColor = _green;
+                scoreBg = _greenLight;
+                statusLabel = 'Eligible ($score% Match)';
+                statusDescription = AppStrings.t(
                   context,
                   'meet_eligibility',
                   'You meet eligibility criteria based on your profile.',
-                ),
-                style: const TextStyle(fontSize: 12, color: _textSub),
-              ),
-            ],
+                );
+              } else if (status == EligibilityStatus.needsVerification) {
+                scoreColor = _amber;
+                scoreBg = _amberLight;
+                statusLabel = 'Verification Needed ($score% Match)';
+                statusDescription = 'Some details (e.g. family income or residency) need verification.';
+              } else {
+                scoreColor = _red;
+                scoreBg = _redLight;
+                statusLabel = 'Not Eligible ($score% Match)';
+                statusDescription = 'One or more criteria do not match your current profile.';
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CardHeader(
+                    icon: Icons.analytics_outlined,
+                    iconBg: scoreBg,
+                    iconColor: scoreColor,
+                    title: AppStrings.t(
+                      context,
+                      'your_match_score',
+                      'Your match score',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Text(
+                        isLoading ? '—' : '$score%',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: scoreColor,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: scoreColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(100),
+                              child: LinearProgressIndicator(
+                                value: isLoading
+                                    ? 0.0
+                                    : (score / 100).clamp(0.0, 1.0),
+                                backgroundColor: scoreBg,
+                                valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                                minHeight: 6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    statusDescription,
+                    style: const TextStyle(fontSize: 12, color: _textSub),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -1525,9 +1609,12 @@ class _BenefitRow extends StatelessWidget {
 class _EligibilityTab extends StatelessWidget {
   final SchemeEligibility? eligibility;
   final List<SchemeSimilar> similarSchemes;
+  final UserEligibilityProfile? userProfile;
+
   const _EligibilityTab({
     required this.eligibility,
     required this.similarSchemes,
+    this.userProfile,
   });
 
   static String _fmt(int v) {
@@ -1539,37 +1626,146 @@ class _EligibilityTab extends StatelessWidget {
   List<Map<String, String>> _buildCriteria() {
     final e = eligibility;
     if (e == null) return [];
+    final u = userProfile;
+
+    // Residency check
+    String residencyStatus = 'pass';
+    String residencyDetail = 'Verified';
+    if (e.requiresResidency == true && e.residencyState != null && e.residencyState!.isNotEmpty) {
+      if (u?.state == null) {
+        residencyStatus = 'warn';
+        residencyDetail = 'Needs check';
+      } else {
+        final matches = u!.state!.toLowerCase().contains(e.residencyState!.toLowerCase()) ||
+            e.residencyState!.toLowerCase().contains(u.state!.toLowerCase());
+        residencyStatus = matches ? 'pass' : 'fail';
+        residencyDetail = matches ? 'Verified' : 'Mismatch';
+      }
+    }
+
+    // Min Age
+    String minAgeStatus = 'pass';
+    String minAgeDetail = 'Verified';
+    if (e.minAge != null && e.minAge! > 0) {
+      if (u?.age == null) {
+        minAgeStatus = 'warn';
+        minAgeDetail = 'Needs check';
+      } else if (u!.age! < e.minAge!) {
+        minAgeStatus = 'fail';
+        minAgeDetail = '${u.age} yrs';
+      } else {
+        minAgeStatus = 'pass';
+        minAgeDetail = '${u.age} yrs';
+      }
+    }
+
+    // Min Disability
+    String minDisPercentStatus = 'pass';
+    String minDisPercentDetail = 'On file';
+    if (e.minDisabilityPercent != null && e.minDisabilityPercent! > 0) {
+      if (u?.disabilityPercent == null) {
+        minDisPercentStatus = 'warn';
+        minDisPercentDetail = 'Needs check';
+      } else if (u!.disabilityPercent! < e.minDisabilityPercent!) {
+        minDisPercentStatus = 'fail';
+        minDisPercentDetail = '${u.disabilityPercent}%';
+      } else {
+        minDisPercentStatus = 'pass';
+        minDisPercentDetail = '${u.disabilityPercent}%';
+      }
+    }
+
+    // Max Income
+    String maxIncomeStatus = 'pass';
+    String maxIncomeDetail = 'Verified';
+    if (e.maxIncome != null && e.maxIncome! > 0) {
+      if (u?.annualIncome == null) {
+        maxIncomeStatus = 'warn';
+        maxIncomeDetail = 'Needs check';
+      } else if (u!.annualIncome! > e.maxIncome!) {
+        maxIncomeStatus = 'fail';
+        maxIncomeDetail = 'Exceeds limit';
+      } else {
+        maxIncomeStatus = 'pass';
+        maxIncomeDetail = 'Within limit';
+      }
+    }
+
+    // Aadhaar
+    String aadhaarStatus = 'pass';
+    String aadhaarDetail = 'Linked';
+    if (e.requiresAadhaar == true) {
+      if (u?.hasAadhaar == null) {
+        aadhaarStatus = 'warn';
+        aadhaarDetail = 'Needs check';
+      } else if (!u!.hasAadhaar!) {
+        aadhaarStatus = 'fail';
+        aadhaarDetail = 'Missing';
+      } else {
+        aadhaarStatus = 'pass';
+        aadhaarDetail = 'Linked';
+      }
+    }
+
+    // Bank Account
+    String bankStatus = 'pass';
+    String bankDetail = 'Linked';
+    if (e.requiresBankAccount == true) {
+      if (u?.hasBankAccount == null) {
+        bankStatus = 'warn';
+        bankDetail = 'Needs check';
+      } else if (!u!.hasBankAccount!) {
+        bankStatus = 'fail';
+        bankDetail = 'Missing';
+      } else {
+        bankStatus = 'pass';
+        bankDetail = 'Linked';
+      }
+    }
+
     return [
       if (e.requiresResidency == true)
         {
           'label': '${e.residencyState ?? 'State'} resident',
-          'status': 'pass',
-          'detail': 'Verified',
+          'status': residencyStatus,
+          'detail': residencyDetail,
         },
-      if (e.minAge != null)
-        {'label': 'Age ${e.minAge}+', 'status': 'pass', 'detail': 'Verified'},
-      if (e.minDisabilityPercent != null)
+      if (e.minAge != null && e.minAge! > 0)
+        {
+          'label': 'Age ${e.minAge}+',
+          'status': minAgeStatus,
+          'detail': minAgeDetail,
+        },
+      if (e.minDisabilityPercent != null && e.minDisabilityPercent! > 0)
         {
           'label': 'Disability certificate (${e.minDisabilityPercent}%+)',
-          'status': 'pass',
-          'detail': 'On file',
+          'status': minDisPercentStatus,
+          'detail': minDisPercentDetail,
         },
-      if (e.maxIncome != null)
+      if (e.maxIncome != null && e.maxIncome! > 0)
         {
           'label': 'Annual income < ${_fmt(e.maxIncome!)}',
-          'status': 'pass',
-          'detail': 'Verified',
+          'status': maxIncomeStatus,
+          'detail': maxIncomeDetail,
         },
       if (e.requiresAadhaar == true)
-        {'label': 'Valid Aadhaar card', 'status': 'pass', 'detail': 'Linked'},
+        {
+          'label': 'Valid Aadhaar card',
+          'status': aadhaarStatus,
+          'detail': aadhaarDetail,
+        },
       if (e.requiresBankAccount == true)
         {
           'label': 'Active bank account (DBT)',
-          'status': 'pass',
-          'detail': 'Linked',
+          'status': bankStatus,
+          'detail': bankDetail,
         },
       if (e.additionalNotes?.isNotEmpty == true)
-        {'label': e.additionalNotes!, 'status': 'warn', 'detail': 'Confirm'},
+        {
+          'label': e.additionalNotes!,
+          'status': 'warn',
+          'detail': 'Confirm',
+        },
     ];
   }
 
@@ -1577,8 +1773,35 @@ class _EligibilityTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final criteria = _buildCriteria();
     final passed = criteria.where((c) => c['status'] == 'pass').length;
+    final failed = criteria.where((c) => c['status'] == 'fail').length;
     final total = criteria.length;
     final pct = total > 0 ? ((passed / total) * 100).round() : 0;
+
+    final Color bannerBg;
+    final Color bannerBorder;
+    final Color bannerColor;
+    final IconData bannerIcon;
+    final String bannerTitle;
+
+    if (failed > 0) {
+      bannerBg = const Color(0xFFFEF2F2);
+      bannerBorder = const Color(0xFFFECACA);
+      bannerColor = _red;
+      bannerIcon = Icons.cancel_rounded;
+      bannerTitle = 'You may not qualify';
+    } else if (passed == total && total > 0) {
+      bannerBg = const Color(0xFFF0FDF4);
+      bannerBorder = const Color(0xFFBBF7D0);
+      bannerColor = _green;
+      bannerIcon = Icons.check_rounded;
+      bannerTitle = AppStrings.t(context, 'likely_qualify', 'You likely qualify');
+    } else {
+      bannerBg = _amberLight;
+      bannerBorder = const Color(0xFFFDE68A);
+      bannerColor = _amber;
+      bannerIcon = Icons.info_outline_rounded;
+      bannerTitle = 'Verification recommended';
+    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -1586,20 +1809,20 @@ class _EligibilityTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0FDF4),
+            color: bannerBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
+            border: Border.all(color: bannerBorder, width: 1.5),
           ),
           child: Row(
             children: [
               Container(
                 width: 36,
                 height: 36,
-                decoration: const BoxDecoration(
-                  color: _greenLight,
+                decoration: BoxDecoration(
+                  color: bannerColor.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_rounded, color: _green, size: 20),
+                child: Icon(bannerIcon, color: bannerColor, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1607,15 +1830,11 @@ class _EligibilityTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppStrings.t(
-                        context,
-                        'likely_qualify',
-                        'You likely qualify',
-                      ),
-                      style: const TextStyle(
+                      bannerTitle,
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: _green,
+                        color: bannerColor,
                       ),
                     ),
                     Text(
@@ -1634,9 +1853,9 @@ class _EligibilityTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(100),
                         child: LinearProgressIndicator(
                           value: passed / total,
-                          backgroundColor: _greenLight,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            _green,
+                          backgroundColor: bannerColor.withOpacity(0.15),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            bannerColor,
                           ),
                           minHeight: 5,
                         ),
@@ -1649,10 +1868,10 @@ class _EligibilityTab extends StatelessWidget {
               if (total > 0)
                 Text(
                   '$pct%',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: _green,
+                    color: bannerColor,
                   ),
                 ),
             ],

@@ -17,6 +17,7 @@ import '../services/reminder_service.dart';
 import 'intro_screen.dart';
 import 'personal_details.dart';
 import '../l10n/app_strings.dart';
+import '../scheme_recommendation/recommendation_screen.dart';
 
 // ─────────────────────────────────────────────
 //  SCHEME SUMMARY MODEL
@@ -226,6 +227,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody() {
     if (currentScreen == 'schemes')
       return SchemesFinder(onBack: () => _navigate('home'));
+    if (currentScreen == 'recommendations')
+      return RecommendationScreen(onBack: () => _navigate('home'));
     if (currentScreen == 'hospitals')
       return HospitalLocator(onBack: () => _navigate('home'));
     if (currentScreen == 'documents')
@@ -644,7 +647,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(AppStrings.t(context, 'home_recommended_schemes', 'Recommended Schemes'), onTap: () => _navigate('schemes')),
+        _sectionHeader(
+          AppStrings.t(context, 'home_recommended_schemes', 'Recommended Schemes'), 
+          onTap: () => _navigate('schemes'),
+          extraAction: GestureDetector(
+            onTap: () => _navigate('recommendations'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_purple, _purpleMid]),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 12),
+                  SizedBox(width: 4),
+                  Text('For You', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 14),
 
         if (_loadingSchemes)
@@ -701,22 +725,31 @@ class _HomeScreenState extends State<HomeScreen> {
   //  WIDGET BUILDERS
   // ─────────────────────────────────────────────
 
-  Widget _sectionHeader(String title, {required VoidCallback onTap}) {
+  Widget _sectionHeader(String title, {required VoidCallback onTap, Widget? extraAction}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(
             fontSize: 17, fontWeight: FontWeight.w700, color: _textMain)),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: _purpleLight,
-              borderRadius: BorderRadius.circular(100)),
-            child: Text(AppStrings.t(context, 'see_all', 'See all'),
-              style: const TextStyle(fontSize: 12, color: _purple,
-                  fontWeight: FontWeight.w600)))),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (extraAction != null) ...[
+              extraAction,
+              const SizedBox(width: 8),
+            ],
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _purpleLight,
+                  borderRadius: BorderRadius.circular(100)),
+                child: Text(AppStrings.t(context, 'see_all', 'See all'),
+                  style: const TextStyle(fontSize: 12, color: _purple,
+                      fontWeight: FontWeight.w600)))),
+          ],
+        ),
       ],
     );
   }

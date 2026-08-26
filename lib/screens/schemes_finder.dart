@@ -5,7 +5,7 @@ import '../providers/language_provider.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'scheme_details_screen.dart';
-
+import '../scheme_recommendation/recommendation_screen.dart';
 // ─────────────────────────────────────────────
 //  COLOURS  (mirrors scheme_details_screen.dart)
 // ─────────────────────────────────────────────
@@ -304,6 +304,34 @@ class _SchemesFinderState extends State<SchemesFinder> {
                     ),
                   ),
                 ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecommendationScreen(
+                          onBack: () => Navigator.pop(context),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_purple, _purpleMid]),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text('Personalized', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {}, // TODO: hook up voice search
                   child: Container(
