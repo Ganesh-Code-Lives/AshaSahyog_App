@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
-import 'screens/intro_screen.dart';
 import 'providers/language_provider.dart';
 
 import 'components/tts_button.dart';
@@ -21,14 +19,13 @@ void main() async {
   // Values are injected at build/run time via:
   //   flutter run --dart-define-from-file=.env
   // Never hardcode secrets here. See .env.example for required keys.
-  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-
-  assert(
-    supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty,
-    '\n\n⚠️  SUPABASE_URL and SUPABASE_ANON_KEY are not set!\n'
-    '   Run: flutter run --dart-define-from-file=.env\n'
-    '   Copy .env.example → .env and fill in your credentials.\n',
+  const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://kfrgkhhsnyqqvqtwimbx.supabase.co',
+  );
+  const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmcmdraGhzbnlxcXZxdHdpbWJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTEyNTgsImV4cCI6MjA4NjYyNzI1OH0.pOSmrezElecOcCm6ANJ81nO_WN9wnc_EdLq1mwAmXZU',
   );
 
   // Initialize Supabase
@@ -38,9 +35,6 @@ void main() async {
   );
   debugPrint("Supabase Initialized");
   
-  final prefs = await SharedPreferences.getInstance();
-  final hasCompletedProfile = prefs.getBool('hasCompletedProfile') ?? false;
-
   // Set global system UI overlays
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
