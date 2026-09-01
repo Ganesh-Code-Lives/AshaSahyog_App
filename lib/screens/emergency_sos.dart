@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
 //  COLOURS
@@ -76,6 +75,8 @@ class _EmergencySOSState extends State<EmergencySOS>
 
   // Location sharing toggle
   bool _locationSharing = false;
+  String? _currentLocationUrl;
+  bool _fetchingLocation = false;
 
   // Emergency contacts — loaded from Supabase
   List<EmergencyContact> _contacts = [];
@@ -213,6 +214,78 @@ class _EmergencySOSState extends State<EmergencySOS>
     });
   }
 
+  Future<void> _sendSMS(String phoneNumber, String messageText) async {
+    final clean = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (clean.isEmpty) return;
+
+    final langCode = context.read<LanguageProvider>().langCode;
+    TTSService().speakFeedback(
+      'Sending emergency SMS',
+      hiMessage: 'आपातकालीन एसएमएस भेजा जा रहा है',
+      mrMessage: 'तातडीचा संदेश पाठवत आहे',
+      langCode: langCode,
+    );
+
+    // Standard native SMS scheme URI (launches system Messages app)
+    final Uri smsUri = Uri(
+      scheme: 'sms',
+      path: clean,
+      queryParameters: <String, String>{
+        'body': messageText,
+      },
+    );
+
+    try {
+      if (await canLaunchUrl(smsUri)) {
+        await launchUrl(smsUri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback native SMS intent
+        final fallbackUri = Uri.parse('sms:$clean?body=${Uri.encodeComponent(messageText)}');
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching SMS: $e');
+    }
+  }
+
+  Future<void> _toggleLocationSharing(bool enable) async {
+    setState(() => _locationSharing = enable);
+    if (enable) {
+      setState(() => _fetchingLocation = true);
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission != LocationPermission.denied && permission != LocationPermission.deniedForever) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+          );
+          if (mounted) {
+            setState(() {
+              _currentLocationUrl = 'https://maps.google.com/?q=${pos.latitude},${pos.longitude}';
+              _fetchingLocation = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Live GPS Location active: $_currentLocationUrl'),
+                backgroundColor: _green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        } else {
+          if (mounted) setState(() => _fetchingLocation = false);
+        }
+      } catch (e) {
+        debugPrint('Error getting location: $e');
+        if (mounted) setState(() => _fetchingLocation = false);
+      }
+    } else {
+      setState(() => _currentLocationUrl = null);
+    }
+  }
+
   Future<void> _triggerSOS() async {
     setState(() => _sosPressed = false);
     
@@ -227,27 +300,28 @@ class _EmergencySOSState extends State<EmergencySOS>
           final pos = await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
           );
-          locationText = ' My location: https://maps.google.com/?q=${pos.latitude},${pos.longitude}';
+          _currentLocationUrl = 'https://maps.google.com/?q=${pos.latitude},${pos.longitude}';
+          locationText = '\nMy Live Location: $_currentLocationUrl';
         }
       } catch (e) {
         debugPrint('Error getting location for SOS: $e');
       }
     }
 
+    final messageText = '🚨 SOS Alert! I need immediate help. Please contact me.$locationText';
+
     // Call national emergency
     await _call('112');
     
-    // Notify all contacts via SMS
+    // Send SMS directly to all emergency contacts
     for (final c in _contacts) {
-      final clean = c.phone.replaceAll(RegExp(r'[^0-9]'), '');
-      final message = Uri.encodeComponent('🚨 SOS Alert! I need immediate help. Please contact me.$locationText');
-      await launchUrl(Uri.parse('sms:$clean?body=$message'));
+      await _sendSMS(c.phone, messageText);
     }
   }
 
   Future<void> _call(String number) async {
-    final clean = number.replaceAll(RegExp(r'[^0-9]'), '');
-    await launchUrl(Uri.parse('tel:$clean'));
+    final clean = number.replaceAll(RegExp(r'[^0-9+]'), '');
+    await launchUrl(Uri.parse('tel:$clean'), mode: LaunchMode.externalApplication);
   }
 
   // ── Add / Edit Contact Dialog ───────────────────────────────
@@ -755,40 +829,89 @@ class _EmergencySOSState extends State<EmergencySOS>
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _cardBorder, width: 1.5),
       ),
-      child: Row(children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-              color: _locationSharing ? _greenLight : const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(12)),
-          child: Icon(Icons.location_on_rounded,
-              color: _locationSharing ? _green : _textSub, size: 22),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Share Live Location',
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: _textMain)),
-            const SizedBox(height: 2),
-            Text(
-              _locationSharing
-                  ? 'Broadcasting to your emergency contacts'
-                  : 'Off — contacts won\'t see your location',
-              style: const TextStyle(fontSize: 11, color: _textSub, height: 1.3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: _locationSharing ? _greenLight : const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Icon(Icons.location_on_rounded,
+                  color: _locationSharing ? _green : _textSub, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Share Live Location',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: _textMain)),
+                const SizedBox(height: 2),
+                Text(
+                  _fetchingLocation
+                      ? 'Fetching current GPS coordinates...'
+                      : _locationSharing
+                          ? (_currentLocationUrl ?? 'GPS Active — attached to emergency SMS')
+                          : 'Off — location will not be sent with SMS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _locationSharing ? _green : _textSub,
+                    height: 1.3,
+                    fontWeight: _locationSharing ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ]),
+            ),
+            Switch(
+              value: _locationSharing,
+              onChanged: _toggleLocationSharing,
+              activeThumbColor: _green,
+              activeTrackColor: _greenLight,
             ),
           ]),
-        ),
-        Switch(
-          value: _locationSharing,
-          onChanged: (v) => setState(() => _locationSharing = v),
-          activeColor: _green,
-          activeTrackColor: _greenLight,
-        ),
-      ]),
+          if (_locationSharing && _contacts.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () async {
+                final loc = _currentLocationUrl ?? 'https://maps.google.com';
+                final msg = '🚨 SOS Live Location Update! My location: $loc';
+                for (final c in _contacts) {
+                  await _sendSMS(c.phone, msg);
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _greenLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _green.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.send_rounded, size: 14, color: _green),
+                    SizedBox(width: 6),
+                    Text(
+                      'Send Live Location SMS to Contacts Now',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _green),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
