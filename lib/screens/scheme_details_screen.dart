@@ -971,6 +971,7 @@ class _OverviewTabState extends State<_OverviewTab> {
   final FlutterTts _tts = FlutterTts();
   bool _isSpeaking = false;
   bool _isPaused = false;
+  double _playbackSpeed = 1.25; // 1.25x is baseline (speechRate 0.7)
 
   @override
   void initState() {
@@ -1052,6 +1053,23 @@ class _OverviewTabState extends State<_OverviewTab> {
           _isSpeaking = true;
           _isPaused = false;
         });
+    }
+  }
+
+  Future<void> _setSpeed(double speed) async {
+    setState(() => _playbackSpeed = speed);
+    double rate;
+    if (speed == 1.0) {
+      rate = 0.55;
+    } else if (speed == 1.5) {
+      rate = 0.85;
+    } else {
+      rate = 0.7; // 1.25x
+    }
+    await _tts.setSpeechRate(rate);
+    if (_isSpeaking && !_isPaused) {
+      await _tts.stop();
+      await _tts.speak(_buildSpeechText());
     }
   }
 
@@ -1236,131 +1254,150 @@ class _OverviewTabState extends State<_OverviewTab> {
                     width: 1.5,
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    // Play / Pause button
-                    GestureDetector(
-                      onTap: _togglePlay,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: (_isSpeaking && !_isPaused)
-                              ? const Color(0xFFBE185D)
-                              : const Color(0xFFEC4899),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFEC4899).withOpacity(0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                    Row(
+                      children: [
+                        // Play / Pause button
+                        GestureDetector(
+                          onTap: _togglePlay,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: (_isSpeaking && !_isPaused)
+                                  ? const Color(0xFFBE185D)
+                                  : const Color(0xFFEC4899),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEC4899).withOpacity(0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: Icon(
+                              (_isSpeaking && !_isPaused)
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
                         ),
-                        child: Icon(
-                          (_isSpeaking && !_isPaused)
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
+                        const SizedBox(width: 10),
 
-                    // Animated waveform bars — pulse when speaking
-                    Expanded(
-                      child: Row(
-                        children: List.generate(18, (i) {
-                          final heights = [
-                            7,
-                            14,
-                            20,
-                            10,
-                            17,
-                            8,
-                            22,
-                            13,
-                            18,
-                            9,
-                            14,
-                            20,
-                            7,
-                            15,
-                            11,
-                            19,
-                            8,
-                            16,
-                          ];
-                          return Expanded(
-                            child: AnimatedContainer(
-                              duration: Duration(milliseconds: 300 + (i * 30)),
-                              margin: const EdgeInsets.symmetric(horizontal: 1),
-                              height: (_isSpeaking && !_isPaused)
-                                  ? heights[i].toDouble()
-                                  : 4.0,
-                              decoration: BoxDecoration(
-                                color: (_isSpeaking && !_isPaused)
-                                    ? const Color(0xFFEC4899)
-                                    : const Color(0xFFFBCFE8),
-                                borderRadius: BorderRadius.circular(2),
+                        // Animated waveform bars
+                        Expanded(
+                          child: Row(
+                            children: List.generate(18, (i) {
+                              final heights = [7, 14, 20, 10, 17, 8, 22, 13, 18, 9, 14, 20, 7, 15, 11, 19, 8, 16];
+                              return Expanded(
+                                child: AnimatedContainer(
+                                  duration: Duration(milliseconds: 300 + (i * 30)),
+                                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                                  height: (_isSpeaking && !_isPaused) ? heights[i].toDouble() : 4.0,
+                                  decoration: BoxDecoration(
+                                    color: (_isSpeaking && !_isPaused)
+                                        ? const Color(0xFFEC4899)
+                                        : const Color(0xFFFBCFE8),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Labels + stop button
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _isSpeaking && !_isPaused
+                                  ? 'Playing...'
+                                  : _isPaused
+                                  ? 'Paused'
+                                  : AppStrings.t(context, 'read_aloud', 'Read Aloud'),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFBE185D),
                               ),
                             ),
-                          );
-                        }),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-
-                    // Labels + stop button
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _isSpeaking && !_isPaused
-                              ? 'Playing...'
-                              : _isPaused
-                              ? 'Paused'
-                              : AppStrings.t(
-                                  context,
-                                  'read_aloud',
-                                  'Read Aloud',
+                            const Text(
+                              'English',
+                              style: TextStyle(fontSize: 10, color: _textSub),
+                            ),
+                            if (_isSpeaking || _isPaused) ...[
+                              const SizedBox(height: 4),
+                              GestureDetector(
+                                onTap: _stopTts,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Stop',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBE185D),
+                                    ),
+                                  ),
                                 ),
-                          style: const TextStyle(
-                            fontSize: 12,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFFBCFE8)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Speech Speed',
+                          style: TextStyle(
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFFBE185D),
                           ),
                         ),
-                        const Text(
-                          'English',
-                          style: TextStyle(fontSize: 10, color: _textSub),
-                        ),
-                        if (_isSpeaking || _isPaused) ...[
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: _stopTts,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEE2E2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Stop',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFBE185D),
+                        Row(
+                          children: [1.0, 1.25, 1.5].map((s) {
+                            final isSelected = _playbackSpeed == s;
+                            return GestureDetector(
+                              onTap: () => _setSpeed(s),
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? const Color(0xFFBE185D) : Colors.white,
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: isSelected ? const Color(0xFFBE185D) : const Color(0xFFFBCFE8),
+                                  ),
+                                ),
+                                child: Text(
+                                  '${s == 1.0 ? '1' : s}x',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSelected ? Colors.white : const Color(0xFFBE185D),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
+                            );
+                          }).toList(),
+                        ),
                       ],
                     ),
                   ],
@@ -1693,7 +1730,7 @@ class _EligibilityTab extends StatelessWidget {
 
     // Aadhaar
     String aadhaarStatus = 'pass';
-    String aadhaarDetail = 'Linked';
+    String aadhaarDetail = 'Available';
     if (e.requiresAadhaar == true) {
       if (u?.hasAadhaar == null) {
         aadhaarStatus = 'warn';
@@ -1703,13 +1740,13 @@ class _EligibilityTab extends StatelessWidget {
         aadhaarDetail = 'Missing';
       } else {
         aadhaarStatus = 'pass';
-        aadhaarDetail = 'Linked';
+        aadhaarDetail = 'Available';
       }
     }
 
     // Bank Account
     String bankStatus = 'pass';
-    String bankDetail = 'Linked';
+    String bankDetail = 'Present';
     if (e.requiresBankAccount == true) {
       if (u?.hasBankAccount == null) {
         bankStatus = 'warn';
@@ -1719,7 +1756,7 @@ class _EligibilityTab extends StatelessWidget {
         bankDetail = 'Missing';
       } else {
         bankStatus = 'pass';
-        bankDetail = 'Linked';
+        bankDetail = 'Present';
       }
     }
 
@@ -2170,18 +2207,27 @@ class _DocumentsTabState extends State<_DocumentsTab> {
     final name = d.name.toLowerCase();
     for (final v in _vaultDocs) {
       final title = (v['title'] as String? ?? '').toLowerCase();
-      if (title.isEmpty) continue;
+      final fileName = (v['fileName'] as String? ?? '').toLowerCase();
+      if (title.isEmpty && fileName.isEmpty) continue;
       if (name.contains(title) || title.contains(name)) return 'uploaded';
-      if (name.contains('aadhaar') && title.contains('aadhaar'))
+      if ((name.contains('aadhaar') || name.contains('aadhar')) &&
+          (title.contains('aadhaar') || title.contains('aadhar') || fileName.contains('aadhaar') || fileName.contains('aadhar'))) {
         return 'uploaded';
-      if (name.contains('pan') && title.contains('pan')) return 'uploaded';
-      if (name.contains('disability') && title.contains('disability'))
+      }
+      if (name.contains('pan') && (title.contains('pan') || fileName.contains('pan'))) {
         return 'uploaded';
+      }
+      if ((name.contains('disability') || name.contains('udid')) &&
+          (title.contains('disability') || title.contains('udid') || fileName.contains('disability') || fileName.contains('udid'))) {
+        return 'uploaded';
+      }
       if ((name.contains('bank') || name.contains('passbook')) &&
-          (title.contains('bank') || title.contains('passbook')))
+          (title.contains('bank') || title.contains('passbook') || fileName.contains('bank') || fileName.contains('passbook'))) {
         return 'uploaded';
-      if (name.contains('income') && title.contains('income'))
+      }
+      if (name.contains('income') && (title.contains('income') || fileName.contains('income'))) {
         return 'uploaded';
+      }
     }
     return 'missing';
   }

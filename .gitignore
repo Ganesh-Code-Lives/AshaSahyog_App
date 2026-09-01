@@ -43,3 +43,25 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Secrets — NEVER commit these ──────────────────────────────
+.env
+
+# ── Temporary analysis / build output files ───────────────────
+analysis.txt
+analysis_output.txt
+analyze.tmp
+analyze_log.txt
+analyze_log_utf8.txt
+analyze_opts.txt
+analyze_out.txt
+analyze_output.txt
+analyze_results.tmp
+build.txt
+build_log.txt
+dart_analyze.txt
+final_check.txt
+final_check_utf8.txt
+home_errors.txt
+home_utf8.txt
+*.tmp

@@ -15,12 +15,26 @@ void main() async {
   // Initialize notifications
   await NotificationService().init();
   
+  // ── Supabase credentials ──────────────────────────────────────────
+  // Values are injected at build/run time via:
+  //   flutter run --dart-define-from-file=.env
+  // Never hardcode secrets here. See .env.example for required keys.
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  assert(
+    supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty,
+    '\n\n⚠️  SUPABASE_URL and SUPABASE_ANON_KEY are not set!\n'
+    '   Run: flutter run --dart-define-from-file=.env\n'
+    '   Copy .env.example → .env and fill in your credentials.\n',
+  );
+
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://kfrgkhhsnyqqvqtwimbx.supabase.co', // TODO: Replace with your Supabase URL
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmcmdraGhzbnlxcXZxdHdpbWJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTEyNTgsImV4cCI6MjA4NjYyNzI1OH0.pOSmrezElecOcCm6ANJ81nO_WN9wnc_EdLq1mwAmXZU', // TODO: Replace with your Supabase Anon Key
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
-  print("Supabase Initialized");
+  debugPrint("Supabase Initialized");
   
   final prefs = await SharedPreferences.getInstance();
   final hasCompletedProfile = prefs.getBool('hasCompletedProfile') ?? false;

@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AshaSahyog (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "device": "chrome",
+      "toolArgs": ["--dart-define-from-file=.env"]
+    },
+    {
+      "name": "AshaSahyog (Android)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file=.env"]
+    }
+  ]
+}

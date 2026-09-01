@@ -19,6 +19,8 @@ class RecommendationService {
     int? disPercent;
     String? state;
 
+    final userMeta = user?.userMetadata ?? {};
+
     if (user != null) {
       final data = await _db.from('profiles').select().eq('id', user.id).maybeSingle();
       if (data != null) {
@@ -45,9 +47,43 @@ class RecommendationService {
 
     // Load local optional prefs
     final prefs = await SharedPreferences.getInstance();
-    final income = prefs.getInt('annualIncome');
-    final hasAadhaar = prefs.getBool('hasAadhaar');
-    final hasBankAccount = prefs.getBool('hasBankAccount');
+    int? income = prefs.getInt('annualIncome');
+    bool? hasAadhaar = prefs.getBool('hasAadhaar');
+    bool? hasBankAccount = prefs.getBool('hasBankAccount');
+
+    // Cloud fallback / cross-platform sync if local is null
+    if (income == null && userMeta['annual_income'] != null) {
+      income = (userMeta['annual_income'] as num?)?.toInt();
+      if (income != null) await prefs.setInt('annualIncome', income);
+    }
+    if (hasAadhaar == null && userMeta['has_aadhaar'] != null) {
+      hasAadhaar = userMeta['has_aadhaar'] as bool?;
+      if (hasAadhaar != null) await prefs.setBool('hasAadhaar', hasAadhaar);
+    }
+    if (hasBankAccount == null && userMeta['has_bank_account'] != null) {
+      hasBankAccount = userMeta['has_bank_account'] as bool?;
+      if (hasBankAccount != null) await prefs.setBool('hasBankAccount', hasBankAccount);
+    }
+
+    // Cross-reference with Document Vault (both local & cloud metadata)
+    final vaultRaw = prefs.getStringList('vault_documents') ?? [];
+    bool hasAadhaarInVault = false;
+    for (final s in vaultRaw) {
+      try {
+        final doc = json.decode(s) as Map<String, dynamic>;
+        final title = (doc['title'] as String? ?? '').toLowerCase();
+        final fileName = (doc['fileName'] as String? ?? '').toLowerCase();
+        if (title.contains('aadhaar') || fileName.contains('aadhaar') ||
+            title.contains('aadhar') || fileName.contains('aadhar')) {
+          hasAadhaarInVault = true;
+          break;
+        }
+      } catch (_) {}
+    }
+
+    if (hasAadhaarInVault) {
+      hasAadhaar = true;
+    }
 
     return UserEligibilityProfile(
       age: age,

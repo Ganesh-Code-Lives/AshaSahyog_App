@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 
@@ -180,9 +181,27 @@ class _DocumentVaultState extends State<DocumentVault>
     for (final s in raw) {
       try {
         final doc = VaultDocument.fromJson(json.decode(s));
-        if (File(doc.filePath).existsSync()) docs.add(doc);
+        if (File(doc.filePath).existsSync()) {
+          docs.add(doc);
+        }
       } catch (_) {}
     }
+
+    // Cloud fallback for multi-device sync if local storage is empty
+    if (docs.isEmpty) {
+      try {
+        final user = Supabase.instance.client.auth.currentUser;
+        final cloudDocs = user?.userMetadata?['vault_documents'];
+        if (cloudDocs is List) {
+          for (final item in cloudDocs) {
+            if (item is Map<String, dynamic>) {
+              docs.add(VaultDocument.fromJson(item));
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
     if (!mounted) return;
     setState(() {
       _documents = docs;
@@ -192,8 +211,22 @@ class _DocumentVaultState extends State<DocumentVault>
 
   Future<void> _saveDocuments() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-        _prefsKey, _documents.map((d) => json.encode(d.toJson())).toList());
+    final jsonList = _documents.map((d) => json.encode(d.toJson())).toList();
+    await prefs.setStringList(_prefsKey, jsonList);
+
+    // Sync vault metadata across devices
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await Supabase.instance.client.auth.updateUser(
+          UserAttributes(
+            data: {
+              'vault_documents': _documents.map((d) => d.toJson()).toList(),
+            },
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   // ── UPLOAD ─────────────────────────────────────────────────────────────────

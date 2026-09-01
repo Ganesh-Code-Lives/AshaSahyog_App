@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EligibilityInfoSheet extends StatefulWidget {
   final VoidCallback onSaved;
@@ -48,10 +49,12 @@ class _EligibilityInfoSheetState extends State<EligibilityInfoSheet> {
   Future<void> _save() async {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
+    int? incomeVal;
     
     if (_incomeCtrl.text.isNotEmpty) {
       final inc = int.tryParse(_incomeCtrl.text.trim());
       if (inc != null) {
+        incomeVal = inc;
         await prefs.setInt('annualIncome', inc);
       }
     } else {
@@ -64,6 +67,22 @@ class _EligibilityInfoSheetState extends State<EligibilityInfoSheet> {
     if (_hasBankAccount != null) {
       await prefs.setBool('hasBankAccount', _hasBankAccount!);
     }
+
+    // Cloud sync for cross-platform availability
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await Supabase.instance.client.auth.updateUser(
+          UserAttributes(
+            data: {
+              'annual_income': incomeVal,
+              'has_aadhaar': _hasAadhaar,
+              'has_bank_account': _hasBankAccount,
+            },
+          ),
+        );
+      }
+    } catch (_) {}
 
     widget.onSaved();
     if (mounted) {
