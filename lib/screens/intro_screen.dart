@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
+import '../services/tts_service.dart';
+
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
 
@@ -255,6 +257,11 @@ class _IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin
                           ),
                           child: ElevatedButton(
                             onPressed: () {
+                              TTSService().speakFeedback(
+                                'Starting AshaSahyog',
+                                hiMessage: 'आशा सहयोग शुरू किया जा रहा है',
+                                mrMessage: 'आशा सहयोग सुरू करत आहे',
+                              );
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(builder: (_) => const LoginScreen()),

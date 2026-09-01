@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'signup_screen.dart';
 import 'splash_screen.dart';
 
+import '../services/tts_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -30,6 +32,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    TTSService().speakFeedback(
+      'Logging in',
+      hiMessage: 'लॉग इन किया जा रहा है',
+      mrMessage: 'लॉग इन करत आहे',
+    );
     setState(() => _authError = null);
     if (!_formKey.currentState!.validate()) {
       setState(() => _hasAttemptedSubmit = true);

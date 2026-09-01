@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
 import '../theme/app_theme.dart';
 
 class BottomNav extends StatelessWidget {
@@ -6,6 +9,39 @@ class BottomNav extends StatelessWidget {
   final Function(String) onNavigate;
 
   const BottomNav({super.key, required this.active, required this.onNavigate});
+
+  void _handleTap(BuildContext context, String key, String label) {
+    final langCode = context.read<LanguageProvider>().langCode;
+
+    String enMsg = 'Opening $label';
+    String hiMsg = '$label खोला जा रहा है';
+    String mrMsg = '$label उघडत आहे';
+
+    if (key == 'home') {
+      enMsg = 'Opening Home';
+      hiMsg = 'होम स्क्रीन खोली जा रही है';
+      mrMsg = 'मुख्यपृष्ठ उघडत आहे';
+    } else if (key == 'schemes') {
+      enMsg = 'Opening Schemes Finder';
+      hiMsg = 'योजनाएं खोली जा रही हैं';
+      mrMsg = 'योजना शोध उघडत आहे';
+    } else if (key == 'sos') {
+      enMsg = 'Opening Emergency SOS';
+      hiMsg = 'आपातकालीन सेवा खोली जा रही है';
+      mrMsg = 'तातडीची मदत उघडत आहे';
+    } else if (key == 'support') {
+      enMsg = 'Opening Support and Helplines';
+      hiMsg = 'सहायता और हेल्पलाइन खोली जा रही है';
+      mrMsg = 'मदत आणि हेल्पलाइन उघडत आहे';
+    } else if (key == 'profile') {
+      enMsg = 'Opening User Profile';
+      hiMsg = 'प्रोफ़ाइल खोली जा रही है';
+      mrMsg = 'प्रोफाईल उघडत आहे';
+    }
+
+    TTSService().speakFeedback(enMsg, hiMessage: hiMsg, mrMessage: mrMsg, langCode: langCode);
+    onNavigate(key);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,15 +54,15 @@ class BottomNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem('home', Icons.home, 'Home'),
-          _buildNavItem('schemes', Icons.description, 'Schemes'),
+          _buildNavItem(context, 'home', Icons.home, 'Home'),
+          _buildNavItem(context, 'schemes', Icons.description, 'Schemes'),
           
           // SOS Button
           InkWell(
-            onTap: () => onNavigate('sos'),
+            onTap: () => _handleTap(context, 'sos', 'Emergency SOS'),
             borderRadius: BorderRadius.circular(28),
             child: Container(
-              margin: const EdgeInsets.only(bottom: 24), // -mt-8 effect
+              margin: const EdgeInsets.only(bottom: 24),
               width: 56,
               height: 56,
               decoration: BoxDecoration(
@@ -38,7 +74,7 @@ class BottomNav extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     spreadRadius: 2,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -51,19 +87,19 @@ class BottomNav extends StatelessWidget {
             ),
           ),
 
-          _buildNavItem('support', Icons.headset_mic, 'Support'),
-          _buildNavItem('profile', Icons.group, 'Profile'),
+          _buildNavItem(context, 'support', Icons.headset_mic, 'Support'),
+          _buildNavItem(context, 'profile', Icons.group, 'Profile'),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(String key, IconData icon, String label) {
+  Widget _buildNavItem(BuildContext context, String key, IconData icon, String label) {
     final isActive = active == key;
     final color = isActive ? AppTheme.primary : AppTheme.textSecondary;
     
     return InkWell(
-      onTap: () => onNavigate(key),
+      onTap: () => _handleTap(context, key, label),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),

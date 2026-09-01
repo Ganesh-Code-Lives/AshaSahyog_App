@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_strings.dart';
 
@@ -192,35 +196,34 @@ class _SupportState extends State<Support> with SingleTickerProviderStateMixin {
             padding: const EdgeInsets.fromLTRB(8, 12, 16, 20),
             child: Row(children: [
               IconButton(
-                onPressed: widget.onBack,
+                onPressed: () {
+                  final langCode = context.read<LanguageProvider>().langCode;
+                  TTSService().speakFeedback(
+                    'Going back',
+                    hiMessage: 'वापस जा रहे हैं',
+                    mrMessage: 'मागे जात आहे',
+                    langCode: langCode,
+                  );
+                  widget.onBack();
+                },
                 icon: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 20),
               ),
               const SizedBox(width: 4),
               Expanded(
-                  child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppStrings.t(context, 'support_title', 'Help & Support'),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Text(AppStrings.t(context, 'support_subtitle', 'Emergency numbers & helplines'),
-                      style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
-                ],
-              )),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.3), width: 1)),
-                child: const Icon(Icons.volume_up_rounded,
-                    color: Colors.white, size: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppStrings.t(context, 'support_title', 'Help & Support'),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(AppStrings.t(context, 'support_subtitle', 'Emergency numbers & helplines'),
+                        style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12)),
+                  ],
+                ),
               ),
             ]),
           ),

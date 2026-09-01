@@ -5,6 +5,10 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 import '../theme/app_theme.dart';
 
 class HospitalLocator extends StatefulWidget {
@@ -474,7 +478,16 @@ out center body;
                             child: Row(
                               children: [
                                 _GlassButton(
-                                  onTap: widget.onBack,
+                                  onTap: () {
+                                    final langCode = context.read<LanguageProvider>().langCode;
+                                    TTSService().speakFeedback(
+                                      'Going back',
+                                      hiMessage: 'वापस जा रहे हैं',
+                                      mrMessage: 'मागे जात आहे',
+                                      langCode: langCode,
+                                    );
+                                    widget.onBack();
+                                  },
                                   child: const Icon(Icons.arrow_back_rounded,
                                       color: Color(0xFF1F2937), size: 20),
                                 ),

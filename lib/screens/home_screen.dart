@@ -18,7 +18,11 @@ import 'intro_screen.dart';
 import 'personal_details.dart';
 import '../l10n/app_strings.dart';
 import '../scheme_recommendation/recommendation_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
 import '../models/scheme_models.dart';
+import '../components/tts_button.dart';
+import '../services/tts_service.dart';
 
 // SchemeSummary is defined in lib/models/scheme_models.dart
 
@@ -452,7 +456,16 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Single action card — fixed height, no overflow ──
   Widget _actionCard(_ActionData a) {
     return GestureDetector(
-      onTap: () => _navigate(a.screen),
+      onTap: () {
+        final langCode = context.read<LanguageProvider>().langCode;
+        TTSService().speakFeedback(
+          'Opening ${a.title}',
+          hiMessage: '${a.title} खोला जा रहा है',
+          mrMessage: '${a.title} उघडत आहे',
+          langCode: langCode,
+        );
+        _navigate(a.screen);
+      },
       child: Container(
         height: 126,
         padding: const EdgeInsets.all(16),
@@ -833,7 +846,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: () => _navigate('schemes'),
+            onTap: () {
+              final langCode = context.read<LanguageProvider>().langCode;
+              TTSService().speakFeedback(
+                'Viewing scheme: ${s.title}',
+                hiMessage: 'योजना देखी जा रही है: ${s.title}',
+                mrMessage: 'योजना पाहत आहे: ${s.title}',
+                langCode: langCode,
+              );
+              _navigate('schemes');
+            },
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10),

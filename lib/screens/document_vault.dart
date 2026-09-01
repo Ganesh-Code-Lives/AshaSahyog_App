@@ -8,6 +8,10 @@ import 'package:open_file/open_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -811,7 +815,16 @@ class _DocumentVaultState extends State<DocumentVault>
                   Row(
                     children: [
                       IconButton(
-                          onPressed: widget.onBack,
+                          onPressed: () {
+                            final langCode = context.read<LanguageProvider>().langCode;
+                            TTSService().speakFeedback(
+                              'Going back',
+                              hiMessage: 'वापस जा रहे हैं',
+                              mrMessage: 'मागे जात आहे',
+                              langCode: langCode,
+                            );
+                            widget.onBack();
+                          },
                           icon: const Icon(Icons.arrow_back_rounded,
                               color: AppTheme.textMain)),
                       const Expanded(

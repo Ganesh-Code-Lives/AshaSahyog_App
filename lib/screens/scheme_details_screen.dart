@@ -977,7 +977,7 @@ class _OverviewTabState extends State<_OverviewTab> {
   void initState() {
     super.initState();
     _tts.setLanguage('en-US');
-    _tts.setSpeechRate(0.7);
+    _tts.setSpeechRate(0.8);
     _tts.setVolume(1.0);
     _tts.setPitch(1.0);
     _tts.setCompletionHandler(() {
@@ -1140,7 +1140,8 @@ class _OverviewTabState extends State<_OverviewTab> {
                   'profile_compatibility',
                   'Profile compatibility',
                 );
-                statusDescription = 'Evaluating against your profile details...';
+                statusDescription =
+                    'Evaluating against your profile details...';
               } else if (status == EligibilityStatus.eligible) {
                 scoreColor = _green;
                 scoreBg = _greenLight;
@@ -1154,12 +1155,14 @@ class _OverviewTabState extends State<_OverviewTab> {
                 scoreColor = _amber;
                 scoreBg = _amberLight;
                 statusLabel = 'Verification Needed ($score% Match)';
-                statusDescription = 'Some details (e.g. family income or residency) need verification.';
+                statusDescription =
+                    'Some details (e.g. family income or residency) need verification.';
               } else {
                 scoreColor = _red;
                 scoreBg = _redLight;
                 statusLabel = 'Not Eligible ($score% Match)';
-                statusDescription = 'One or more criteria do not match your current profile.';
+                statusDescription =
+                    'One or more criteria do not match your current profile.';
               }
 
               return Column(
@@ -1207,7 +1210,9 @@ class _OverviewTabState extends State<_OverviewTab> {
                                     ? 0.0
                                     : (score / 100).clamp(0.0, 1.0),
                                 backgroundColor: scoreBg,
-                                valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scoreColor,
+                                ),
                                 minHeight: 6,
                               ),
                             ),
@@ -1272,7 +1277,9 @@ class _OverviewTabState extends State<_OverviewTab> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFEC4899).withOpacity(0.35),
+                                  color: const Color(
+                                    0xFFEC4899,
+                                  ).withOpacity(0.35),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -1293,12 +1300,37 @@ class _OverviewTabState extends State<_OverviewTab> {
                         Expanded(
                           child: Row(
                             children: List.generate(18, (i) {
-                              final heights = [7, 14, 20, 10, 17, 8, 22, 13, 18, 9, 14, 20, 7, 15, 11, 19, 8, 16];
+                              final heights = [
+                                7,
+                                14,
+                                20,
+                                10,
+                                17,
+                                8,
+                                22,
+                                13,
+                                18,
+                                9,
+                                14,
+                                20,
+                                7,
+                                15,
+                                11,
+                                19,
+                                8,
+                                16,
+                              ];
                               return Expanded(
                                 child: AnimatedContainer(
-                                  duration: Duration(milliseconds: 300 + (i * 30)),
-                                  margin: const EdgeInsets.symmetric(horizontal: 1),
-                                  height: (_isSpeaking && !_isPaused) ? heights[i].toDouble() : 4.0,
+                                  duration: Duration(
+                                    milliseconds: 300 + (i * 30),
+                                  ),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 1,
+                                  ),
+                                  height: (_isSpeaking && !_isPaused)
+                                      ? heights[i].toDouble()
+                                      : 4.0,
                                   decoration: BoxDecoration(
                                     color: (_isSpeaking && !_isPaused)
                                         ? const Color(0xFFEC4899)
@@ -1321,7 +1353,11 @@ class _OverviewTabState extends State<_OverviewTab> {
                                   ? 'Playing...'
                                   : _isPaused
                                   ? 'Paused'
-                                  : AppStrings.t(context, 'read_aloud', 'Read Aloud'),
+                                  : AppStrings.t(
+                                      context,
+                                      'read_aloud',
+                                      'Read Aloud',
+                                    ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -1337,7 +1373,10 @@ class _OverviewTabState extends State<_OverviewTab> {
                               GestureDetector(
                                 onTap: _stopTts,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFEE2E2),
                                     borderRadius: BorderRadius.circular(6),
@@ -1378,20 +1417,31 @@ class _OverviewTabState extends State<_OverviewTab> {
                               onTap: () => _setSpeed(s),
                               child: Container(
                                 margin: const EdgeInsets.only(left: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFFBE185D) : Colors.white,
+                                  color: isSelected
+                                      ? const Color(0xFFBE185D)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(100),
                                   border: Border.all(
-                                    color: isSelected ? const Color(0xFFBE185D) : const Color(0xFFFBCFE8),
+                                    color: isSelected
+                                        ? const Color(0xFFBE185D)
+                                        : const Color(0xFFFBCFE8),
                                   ),
                                 ),
                                 child: Text(
                                   '${s == 1.0 ? '1' : s}x',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                    color: isSelected ? Colors.white : const Color(0xFFBE185D),
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFFBE185D),
                                   ),
                                 ),
                               ),
@@ -1668,12 +1718,15 @@ class _EligibilityTab extends StatelessWidget {
     // Residency check
     String residencyStatus = 'pass';
     String residencyDetail = 'Verified';
-    if (e.requiresResidency == true && e.residencyState != null && e.residencyState!.isNotEmpty) {
+    if (e.requiresResidency == true &&
+        e.residencyState != null &&
+        e.residencyState!.isNotEmpty) {
       if (u?.state == null) {
         residencyStatus = 'warn';
         residencyDetail = 'Needs check';
       } else {
-        final matches = u!.state!.toLowerCase().contains(e.residencyState!.toLowerCase()) ||
+        final matches =
+            u!.state!.toLowerCase().contains(e.residencyState!.toLowerCase()) ||
             e.residencyState!.toLowerCase().contains(u.state!.toLowerCase());
         residencyStatus = matches ? 'pass' : 'fail';
         residencyDetail = matches ? 'Verified' : 'Mismatch';
@@ -1798,11 +1851,7 @@ class _EligibilityTab extends StatelessWidget {
           'detail': bankDetail,
         },
       if (e.additionalNotes?.isNotEmpty == true)
-        {
-          'label': e.additionalNotes!,
-          'status': 'warn',
-          'detail': 'Confirm',
-        },
+        {'label': e.additionalNotes!, 'status': 'warn', 'detail': 'Confirm'},
     ];
   }
 
@@ -1831,7 +1880,11 @@ class _EligibilityTab extends StatelessWidget {
       bannerBorder = const Color(0xFFBBF7D0);
       bannerColor = _green;
       bannerIcon = Icons.check_rounded;
-      bannerTitle = AppStrings.t(context, 'likely_qualify', 'You likely qualify');
+      bannerTitle = AppStrings.t(
+        context,
+        'likely_qualify',
+        'You likely qualify',
+      );
     } else {
       bannerBg = _amberLight;
       bannerBorder = const Color(0xFFFDE68A);
@@ -2211,21 +2264,32 @@ class _DocumentsTabState extends State<_DocumentsTab> {
       if (title.isEmpty && fileName.isEmpty) continue;
       if (name.contains(title) || title.contains(name)) return 'uploaded';
       if ((name.contains('aadhaar') || name.contains('aadhar')) &&
-          (title.contains('aadhaar') || title.contains('aadhar') || fileName.contains('aadhaar') || fileName.contains('aadhar'))) {
+          (title.contains('aadhaar') ||
+              title.contains('aadhar') ||
+              fileName.contains('aadhaar') ||
+              fileName.contains('aadhar'))) {
         return 'uploaded';
       }
-      if (name.contains('pan') && (title.contains('pan') || fileName.contains('pan'))) {
+      if (name.contains('pan') &&
+          (title.contains('pan') || fileName.contains('pan'))) {
         return 'uploaded';
       }
       if ((name.contains('disability') || name.contains('udid')) &&
-          (title.contains('disability') || title.contains('udid') || fileName.contains('disability') || fileName.contains('udid'))) {
+          (title.contains('disability') ||
+              title.contains('udid') ||
+              fileName.contains('disability') ||
+              fileName.contains('udid'))) {
         return 'uploaded';
       }
       if ((name.contains('bank') || name.contains('passbook')) &&
-          (title.contains('bank') || title.contains('passbook') || fileName.contains('bank') || fileName.contains('passbook'))) {
+          (title.contains('bank') ||
+              title.contains('passbook') ||
+              fileName.contains('bank') ||
+              fileName.contains('passbook'))) {
         return 'uploaded';
       }
-      if (name.contains('income') && (title.contains('income') || fileName.contains('income'))) {
+      if (name.contains('income') &&
+          (title.contains('income') || fileName.contains('income'))) {
         return 'uploaded';
       }
     }

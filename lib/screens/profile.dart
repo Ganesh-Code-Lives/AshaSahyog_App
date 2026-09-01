@@ -8,6 +8,10 @@ import '../models/user_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'language_selection.dart';
 import 'support.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 import '../l10n/app_strings.dart';
 import '../scheme_recommendation/eligibility_info_sheet.dart';
 
@@ -477,7 +481,16 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                         child: Row(
                           children: [
                             GestureDetector(
-                              onTap: widget.onBack,
+                              onTap: () {
+                                final langCode = context.read<LanguageProvider>().langCode;
+                                TTSService().speakFeedback(
+                                  'Going back',
+                                  hiMessage: 'वापस जा रहे हैं',
+                                  mrMessage: 'मागे जात आहे',
+                                  langCode: langCode,
+                                );
+                                widget.onBack();
+                              },
                               child: Container(
                                 width: 36, height: 36,
                                 decoration: BoxDecoration(
@@ -494,18 +507,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
                             ),
                             const Spacer(),
-                            GestureDetector(
-                              onTap: () {},
-                              child: Container(
-                                width: 36, height: 36,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0x2EFFFFFF),
-                                  border: Border.all(color: const Color(0x4DFFFFFF), width: 1.5),
-                                ),
-                                child: const Icon(Icons.settings_rounded, color: Colors.white, size: 18),
-                              ),
-                            ),
                           ],
                         ),
                       ),

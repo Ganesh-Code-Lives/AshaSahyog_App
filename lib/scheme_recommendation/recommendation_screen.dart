@@ -10,6 +10,8 @@ import 'eligibility_info_sheet.dart';
 import 'recommendation_service.dart';
 import 'recommended_scheme_model.dart';
 import 'user_eligibility_profile.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 
 // ─────────────────────────────────────────────
 // COLOURS
@@ -172,7 +174,16 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: widget.onBack,
+            onPressed: () {
+              final langCode = context.read<LanguageProvider>().langCode;
+              TTSService().speakFeedback(
+                'Going back',
+                hiMessage: 'वापस जा रहे हैं',
+                mrMessage: 'मागे जात आहे',
+                langCode: langCode,
+              );
+              widget.onBack();
+            },
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textMain, size: 18),
           ),
           Expanded(

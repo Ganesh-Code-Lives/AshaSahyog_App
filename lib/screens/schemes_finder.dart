@@ -6,6 +6,8 @@ import '../l10n/app_strings.dart';
 import 'scheme_details_screen.dart';
 import '../scheme_recommendation/recommendation_screen.dart';
 import '../models/scheme_models.dart'; // canonical SchemeSummary
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 // ─────────────────────────────────────────────
 //  COLOURS  (mirrors scheme_details_screen.dart)
 // ─────────────────────────────────────────────
@@ -181,6 +183,12 @@ class _SchemesFinderState extends State<SchemesFinder> {
 
     try {
       final langCode = Provider.of<LanguageProvider>(context, listen: false).langCode;
+      TTSService().speakFeedback(
+        'Opening scheme details',
+        hiMessage: 'योजना विवरण खोला जा रहा है',
+        mrMessage: 'योजनेची माहिती उघडत आहे',
+        langCode: langCode,
+      );
       final scheme = await _repo.getSchemeById(schemeId, langCode: langCode);
       overlay.remove();
       if (!mounted) return;
@@ -243,7 +251,16 @@ class _SchemesFinderState extends State<SchemesFinder> {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: widget.onBack,
+                  onPressed: () {
+                    final langCode = context.read<LanguageProvider>().langCode;
+                    TTSService().speakFeedback(
+                      'Going back',
+                      hiMessage: 'वापस जा रहे हैं',
+                      mrMessage: 'मागे जात आहे',
+                      langCode: langCode,
+                    );
+                    widget.onBack();
+                  },
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       color: _textMain, size: 18),
                 ),
@@ -260,6 +277,13 @@ class _SchemesFinderState extends State<SchemesFinder> {
                 ),
                 GestureDetector(
                   onTap: () {
+                    final langCode = context.read<LanguageProvider>().langCode;
+                    TTSService().speakFeedback(
+                      'Opening Personalized AI Recommendations',
+                      hiMessage: 'व्यक्तिगत सिफारिशें खोली जा रही हैं',
+                      mrMessage: 'वैयक्तिकृत शिफारसी उघडत आहे',
+                      langCode: langCode,
+                    );
                     Navigator.push(
                       context,
                       MaterialPageRoute(

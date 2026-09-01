@@ -3,6 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
@@ -163,6 +166,14 @@ class _EmergencySOSState extends State<EmergencySOS>
 
   // ── SOS Logic ──────────────────────────────────────────────
   void _startSOS() {
+    final langCode = context.read<LanguageProvider>().langCode;
+    TTSService().speakFeedback(
+      'Emergency SOS activated. Countdown started.',
+      hiMessage: 'आपातकालीन सेवा सक्रिय की गई। काउंटडाउन शुरू।',
+      mrMessage: 'तातडीची मदत सुरू झाली. उलट गणना सुरू.',
+      langCode: langCode,
+    );
+
     setState(() {
       _sosPressed = true;
       _countdown = 3;
@@ -187,6 +198,14 @@ class _EmergencySOSState extends State<EmergencySOS>
   }
 
   void _cancelSOS() {
+    final langCode = context.read<LanguageProvider>().langCode;
+    TTSService().speakFeedback(
+      'Emergency SOS cancelled.',
+      hiMessage: 'आपातकालीन सेवा रद्द कर दी गई।',
+      mrMessage: 'तातडीची मदत रद्द केली.',
+      langCode: langCode,
+    );
+
     _countdownCtrl?.stop();
     setState(() {
       _sosPressed = false;

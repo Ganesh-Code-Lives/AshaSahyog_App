@@ -5,6 +5,10 @@ import '../models/reminder.dart';
 import '../services/reminder_service.dart';
 import 'create_reminder_screen.dart';
 import '../l10n/app_strings.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../components/tts_button.dart';
 
 // ─────────────────────────────────────────────
 //  COLOURS  (matches app design system)
@@ -254,7 +258,16 @@ class _RemindersState extends State<Reminders> with SingleTickerProviderStateMix
             padding: const EdgeInsets.fromLTRB(8, 12, 16, 20),
             child: Row(children: [
               IconButton(
-                onPressed: widget.onBack,
+                onPressed: () {
+                  final langCode = context.read<LanguageProvider>().langCode;
+                  TTSService().speakFeedback(
+                    'Going back',
+                    hiMessage: 'वापस जा रहे हैं',
+                    mrMessage: 'मागे जात आहे',
+                    langCode: langCode,
+                  );
+                  widget.onBack();
+                },
                 icon: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 20),
               ),

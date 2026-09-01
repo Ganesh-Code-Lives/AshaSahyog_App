@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_screen.dart';
 import 'personal_details.dart';
+import '../services/tts_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -68,6 +69,11 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _handleSignup() async {
+    TTSService().speakFeedback(
+      'Creating account',
+      hiMessage: 'खाता बनाया जा रहा है',
+      mrMessage: 'खाते तयार करत आहे',
+    );
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
