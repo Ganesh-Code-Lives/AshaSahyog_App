@@ -1,4 +1,4 @@
-import '../screens/schemes_finder.dart';
+import '../models/scheme_models.dart'; // canonical SchemeSummary
 import 'eligibility_engine.dart';
 
 /// A scheme paired with its eligibility evaluation result and recommendation score.

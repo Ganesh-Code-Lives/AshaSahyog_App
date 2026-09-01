@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:geolocator/geolocator.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
@@ -194,12 +196,33 @@ class _EmergencySOSState extends State<EmergencySOS>
 
   Future<void> _triggerSOS() async {
     setState(() => _sosPressed = false);
+    
+    String locationText = '';
+    if (_locationSharing) {
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission != LocationPermission.denied && permission != LocationPermission.deniedForever) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+          );
+          locationText = ' My location: https://maps.google.com/?q=${pos.latitude},${pos.longitude}';
+        }
+      } catch (e) {
+        debugPrint('Error getting location for SOS: $e');
+      }
+    }
+
     // Call national emergency
     await _call('112');
-    // Notify all contacts via phone
+    
+    // Notify all contacts via SMS
     for (final c in _contacts) {
       final clean = c.phone.replaceAll(RegExp(r'[^0-9]'), '');
-      await launchUrl(Uri.parse('sms:$clean?body=🚨 SOS Alert! I need immediate help. Please contact me.'));
+      final message = Uri.encodeComponent('🚨 SOS Alert! I need immediate help. Please contact me.$locationText');
+      await launchUrl(Uri.parse('sms:$clean?body=$message'));
     }
   }
 
@@ -261,9 +284,8 @@ class _EmergencySOSState extends State<EmergencySOS>
               onPressed: isSaving ? null : () async {
                 if (!formKey.currentState!.validate()) return;
                 setDlg(() => isSaving = true);
-                // Generate a UUID locally so we can pass it to Supabase
-                final newId = existing?.id ??
-                    '${DateTime.now().millisecondsSinceEpoch}-${nameCtrl.text.trim().hashCode.abs()}';
+                // Generate a valid UUID v4 locally
+                final newId = existing?.id ?? const Uuid().v4();
                 final contact = EmergencyContact(
                   id      : newId,
                   name    : nameCtrl.text.trim(),

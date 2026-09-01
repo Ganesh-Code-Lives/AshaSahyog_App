@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reminder.dart';
 import 'notification_service.dart';
@@ -17,7 +18,7 @@ class ReminderService {
       final List<dynamic> decoded = json.decode(remindersJson);
       return decoded.map((item) => Reminder.fromJson(item)).toList();
     } catch (e) {
-      print('Error loading reminders: $e');
+      debugPrint('Error loading reminders: $e');
       return [];
     }
   }

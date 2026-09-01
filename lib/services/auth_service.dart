@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
@@ -16,10 +17,10 @@ class AuthService {
       );
       return response;
     } on AuthException catch (e) {
-      print("Supabase AuthException: ${e.message}");
+      debugPrint("Supabase AuthException: ${e.message}");
       rethrow;
     } catch (e) {
-      print("General Sign Up Exception: $e");
+      debugPrint("General Sign Up Exception: $e");
       rethrow;
     }
   }
@@ -32,10 +33,10 @@ class AuthService {
       );
       return response;
     } on AuthException catch (e) {
-      print("Supabase AuthException: ${e.message}");
+      debugPrint("Supabase AuthException: ${e.message}");
       rethrow;
     } catch (e) {
-      print("General Login Exception: $e");
+      debugPrint("General Login Exception: $e");
       rethrow;
     }
   }
@@ -44,7 +45,7 @@ class AuthService {
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      print("General Logout Exception: $e");
+      debugPrint("General Logout Exception: $e");
       rethrow;
     }
   }

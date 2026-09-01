@@ -1,8 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -101,7 +101,7 @@ class NotificationService {
         matchDateTimeComponents: components,
       );
     } catch (e) {
-      print('Error scheduling notification: $e');
+      debugPrint('Error scheduling notification: $e');
     }
   }
 

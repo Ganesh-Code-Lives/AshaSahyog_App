@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../l10n/app_strings.dart';
-import '../theme/app_theme.dart';
 import 'scheme_details_screen.dart';
 import '../scheme_recommendation/recommendation_screen.dart';
+import '../models/scheme_models.dart'; // canonical SchemeSummary
 // ─────────────────────────────────────────────
 //  COLOURS  (mirrors scheme_details_screen.dart)
 // ─────────────────────────────────────────────
@@ -19,53 +19,7 @@ const _cardBorder  = Color(0xFFEDE9FE);
 const _textMain    = Color(0xFF1E1B2E);
 const _textSub     = Color(0xFF6B7280);
 
-// ─────────────────────────────────────────────
-//  DATA MODEL  (move to lib/models/ later)
-// ─────────────────────────────────────────────
-class SchemeSummary {
-  final String id;
-  final String title;
-  final String? category;
-  final String? state;
-  final String? summary;
-  final dynamic amount;
-  final bool active;
-
-  const SchemeSummary({
-    required this.id,
-    required this.title,
-    this.category,
-    this.state,
-    this.summary,
-    this.amount,
-    this.active = true,
-  });
-
-  factory SchemeSummary.fromJson(Map<String, dynamic> j, {String langCode = 'en'}) {
-    String t = j['title'] as String? ?? '';
-    String? s = j['summary'] as String?;
-    
-    if (langCode == 'hi') {
-      t = j['title_hi'] as String? ?? t;
-      if (t.isEmpty) t = j['title'] as String? ?? '';
-      s = j['summary_hi'] as String? ?? s;
-    } else if (langCode == 'mr') {
-      t = j['title_mr'] as String? ?? t;
-      if (t.isEmpty) t = j['title'] as String? ?? '';
-      s = j['summary_mr'] as String? ?? s;
-    }
-
-    return SchemeSummary(
-      id: j['id'] as String? ?? '',
-      title: t,
-      category: j['category'] as String?,
-      state: j['state'] as String?,
-      summary: s,
-      amount: j['amount'],
-      active: j['active'] as bool? ?? true,
-    );
-  }
-}
+// SchemeSummary is defined in lib/models/scheme_models.dart
 
 // ─────────────────────────────────────────────
 //  REPOSITORY
@@ -114,7 +68,7 @@ class _SchemeRepository {
       scheme_similar(*)
     ''').eq('id', id).single();
 
-    return SchemeDetail.fromJson(json as Map<String, dynamic>, langCode: langCode);
+    return SchemeDetail.fromJson(json, langCode: langCode);
   }
 }
 

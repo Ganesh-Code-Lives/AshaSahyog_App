@@ -3,13 +3,43 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/scheme_details_screen.dart';
-import '../screens/schemes_finder.dart';
+import '../models/scheme_models.dart'; // canonical SchemeSummary
 import 'user_eligibility_profile.dart';
 import 'eligibility_engine.dart';
 import 'recommended_scheme_model.dart';
 
 class RecommendationService {
   final _db = Supabase.instance.client;
+
+  static final List<String> _indianStates = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Puducherry', 'Chandigarh',
+  ];
+
+  static String? _extractStateFromAddress(String? address) {
+    if (address == null || address.trim().isEmpty) return null;
+    final lower = address.toLowerCase();
+    for (final s in _indianStates) {
+      if (lower.contains(s.toLowerCase())) {
+        return s;
+      }
+    }
+    if (lower.contains('mumbai') || lower.contains('pune') || lower.contains('nagpur')) return 'Maharashtra';
+    if (lower.contains('bangalore') || lower.contains('bengaluru') || lower.contains('mysore')) return 'Karnataka';
+    if (lower.contains('chennai') || lower.contains('coimbatore')) return 'Tamil Nadu';
+    if (lower.contains('hyderabad')) return 'Telangana';
+    if (lower.contains('kolkata') || lower.contains('calcutta')) return 'West Bengal';
+    if (lower.contains('new delhi') || lower.contains('ncr')) return 'Delhi';
+    if (lower.contains('ahmedabad') || lower.contains('surat')) return 'Gujarat';
+    if (lower.contains('jaipur')) return 'Rajasthan';
+    if (lower.contains('lucknow') || lower.contains('kanpur') || lower.contains('noida')) return 'Uttar Pradesh';
+
+    return address.trim();
+  }
 
   /// Fetch user profile from Supabase and SharedPreferences
   Future<UserEligibilityProfile> getUserProfile() async {
@@ -41,7 +71,8 @@ class RecommendationService {
         if (dpStr != null && dpStr.isNotEmpty) {
           disPercent = int.tryParse(dpStr.replaceAll('%', '').trim());
         }
-        state = data['address'] as String?;
+        final rawAddress = data['address'] as String?;
+        state = _extractStateFromAddress(rawAddress);
       }
     }
 

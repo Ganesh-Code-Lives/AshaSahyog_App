@@ -18,32 +18,9 @@ import 'intro_screen.dart';
 import 'personal_details.dart';
 import '../l10n/app_strings.dart';
 import '../scheme_recommendation/recommendation_screen.dart';
+import '../models/scheme_models.dart';
 
-// ─────────────────────────────────────────────
-//  SCHEME SUMMARY MODEL
-// ─────────────────────────────────────────────
-class SchemeSummary {
-  final String  id;
-  final String  title;
-  final String? category;
-  final String? state;
-  final String? summary;
-  final int?    amount;
-
-  const SchemeSummary({
-    required this.id, required this.title,
-    this.category, this.state, this.summary, this.amount,
-  });
-
-  factory SchemeSummary.fromJson(Map<String, dynamic> j) => SchemeSummary(
-    id      : j['id']       as String? ?? '',
-    title   : j['title']    as String? ?? '',
-    category: j['category'] as String?,
-    state   : j['state']    as String?,
-    summary : j['summary']  as String?,
-    amount  : j['amount']   as int?,
-  );
-}
+// SchemeSummary is defined in lib/models/scheme_models.dart
 
 // ─────────────────────────────────────────────
 //  COLOURS
@@ -243,7 +220,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return Profile(
         onBack          : () => _navigate('home'),
         onLogout        : _handleLogout,
-        onProfileUpdated: _loadProfile,
+        onProfileUpdated: () {
+          _loadProfile();
+          _loadDashboardData();
+        },
         personalData: PersonalDetailsData(
           fullName   : fullName,
           email      : email,
