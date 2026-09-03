@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -247,6 +249,19 @@ class _DocumentVaultState extends State<DocumentVault>
     );
   }
 
+  String _getMimeType(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'pdf': return 'application/pdf';
+      case 'png': return 'image/png';
+      case 'jpg': case 'jpeg': return 'image/jpeg';
+      case 'gif': return 'image/gif';
+      case 'webp': return 'image/webp';
+      case 'doc': return 'application/msword';
+      case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default: return 'application/octet-stream';
+    }
+  }
+
   Future<void> _pickFile() async {
     Navigator.pop(context);
     try {
@@ -254,11 +269,35 @@ class _DocumentVaultState extends State<DocumentVault>
         allowMultiple: false,
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        withData: true,
       );
       if (result == null || result.files.isEmpty) return;
       final file = result.files.first;
-      if (file.path == null) return;
-      await _saveAndAddDocument(file.path!, file.name, file.size);
+
+      if (kIsWeb) {
+        final bytes = file.bytes;
+        final name = file.name;
+        final size = file.size;
+        final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+        String filePath = '';
+        if (bytes != null) {
+          final b64 = base64Encode(bytes);
+          final mime = _getMimeType(ext);
+          filePath = 'data:$mime;base64,$b64';
+        } else {
+          filePath = name;
+        }
+        if (!mounted) return;
+        _showSaveDocumentSheet(
+          filePath: filePath,
+          fileName: name,
+          fileSize: size,
+          ext: ext,
+        );
+      } else {
+        if (file.path == null) return;
+        await _saveAndAddDocument(file.path!, file.name, file.size);
+      }
     } catch (e) {
       _showError('Could not pick file: $e');
     }
@@ -270,9 +309,26 @@ class _DocumentVaultState extends State<DocumentVault>
       final picker = ImagePicker();
       final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
       if (img == null) return;
-      final file = File(img.path);
-      final size = await file.length();
-      await _saveAndAddDocument(img.path, img.name, size);
+      if (kIsWeb) {
+        final bytes = await img.readAsBytes();
+        final size = bytes.length;
+        final name = img.name;
+        final ext = name.contains('.') ? name.split('.').last.toLowerCase() : 'jpg';
+        final b64 = base64Encode(bytes);
+        final mime = _getMimeType(ext);
+        final filePath = 'data:$mime;base64,$b64';
+        if (!mounted) return;
+        _showSaveDocumentSheet(
+          filePath: filePath,
+          fileName: name,
+          fileSize: size,
+          ext: ext,
+        );
+      } else {
+        final file = File(img.path);
+        final size = await file.length();
+        await _saveAndAddDocument(img.path, img.name, size);
+      }
     } catch (e) {
       _showError('Could not pick image: $e');
     }
@@ -284,9 +340,26 @@ class _DocumentVaultState extends State<DocumentVault>
       final picker = ImagePicker();
       final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
       if (img == null) return;
-      final file = File(img.path);
-      final size = await file.length();
-      await _saveAndAddDocument(img.path, img.name, size);
+      if (kIsWeb) {
+        final bytes = await img.readAsBytes();
+        final size = bytes.length;
+        final name = img.name;
+        final ext = name.contains('.') ? name.split('.').last.toLowerCase() : 'jpg';
+        final b64 = base64Encode(bytes);
+        final mime = _getMimeType(ext);
+        final filePath = 'data:$mime;base64,$b64';
+        if (!mounted) return;
+        _showSaveDocumentSheet(
+          filePath: filePath,
+          fileName: name,
+          fileSize: size,
+          ext: ext,
+        );
+      } else {
+        final file = File(img.path);
+        final size = await file.length();
+        await _saveAndAddDocument(img.path, img.name, size);
+      }
     } catch (e) {
       _showError('Could not capture image: $e');
     }
@@ -294,11 +367,23 @@ class _DocumentVaultState extends State<DocumentVault>
 
   Future<void> _saveAndAddDocument(
       String sourcePath, String fileName, int fileSize) async {
+    final ext = fileName.contains('.') ? fileName.split('.').last : '';
+
+    if (kIsWeb) {
+      if (!mounted) return;
+      _showSaveDocumentSheet(
+        filePath: sourcePath,
+        fileName: fileName,
+        fileSize: fileSize,
+        ext: ext,
+      );
+      return;
+    }
+
     final appDir = await getApplicationDocumentsDirectory();
     final vaultDir = Directory('${appDir.path}/vault');
     if (!vaultDir.existsSync()) vaultDir.createSync(recursive: true);
 
-    final ext = fileName.contains('.') ? fileName.split('.').last : '';
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final destPath = '${vaultDir.path}/$id.$ext';
 
@@ -373,8 +458,22 @@ class _DocumentVaultState extends State<DocumentVault>
                                   : isPdf
                                       ? const Color(0xFFFEE2E2)
                                       : const Color(0xFFF3E8FF),
-                              child: isImage && File(filePath).existsSync()
-                                  ? Image.file(File(filePath), fit: BoxFit.cover)
+                              child: isImage
+                                  ? (filePath.startsWith('data:') || filePath.startsWith('http')
+                                      ? Image.network(
+                                          filePath,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(Icons.image_rounded,
+                                                  color: Color(0xFF0284C7),
+                                                  size: 28),
+                                        )
+                                      : (!kIsWeb && File(filePath).existsSync()
+                                          ? Image.file(File(filePath),
+                                              fit: BoxFit.cover)
+                                          : const Icon(Icons.image_rounded,
+                                              color: Color(0xFF0284C7),
+                                              size: 28)))
                                   : Icon(
                                       isPdf
                                           ? Icons.picture_as_pdf_rounded
@@ -547,7 +646,9 @@ class _DocumentVaultState extends State<DocumentVault>
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                try { File(filePath).deleteSync(); } catch (_) {}
+                                if (!kIsWeb) {
+                                  try { File(filePath).deleteSync(); } catch (_) {}
+                                }
                                 Navigator.pop(ctx);
                               },
                               style: OutlinedButton.styleFrom(
@@ -678,10 +779,12 @@ class _DocumentVaultState extends State<DocumentVault>
   }
 
   void _deleteDocument(VaultDocument doc) {
-    try {
-      final f = File(doc.filePath);
-      if (f.existsSync()) f.deleteSync();
-    } catch (_) {}
+    if (!kIsWeb) {
+      try {
+        final f = File(doc.filePath);
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
+    }
     setState(() => _documents.removeWhere((d) => d.id == doc.id));
     _saveDocuments();
     _showSuccess('Document deleted');
@@ -690,6 +793,17 @@ class _DocumentVaultState extends State<DocumentVault>
   // ── OPEN ───────────────────────────────────────────────────────────────────
 
   Future<void> _openDocument(VaultDocument doc) async {
+    if (kIsWeb) {
+      if (doc.filePath.startsWith('data:') || doc.filePath.startsWith('http')) {
+        final uri = Uri.parse(doc.filePath);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+          return;
+        }
+      }
+      _showSuccess('Document "${doc.title}" stored in vault');
+      return;
+    }
     final result = await OpenFile.open(doc.filePath);
     if (result.type != ResultType.done && mounted) {
       _showError('Cannot open this file type');
@@ -1117,6 +1231,40 @@ class _UploadOption extends StatelessWidget {
   }
 }
 
+Widget _buildDocImage(
+  VaultDocument doc, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.cover,
+  required Widget Function() fallback,
+}) {
+  if (!doc.isImage) return fallback();
+  if (doc.filePath.startsWith('data:') || doc.filePath.startsWith('http')) {
+    return Image.network(
+      doc.filePath,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (_, __, ___) => fallback(),
+    );
+  }
+  if (!kIsWeb) {
+    try {
+      final f = File(doc.filePath);
+      if (f.existsSync()) {
+        return Image.file(
+          f,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (_, __, ___) => fallback(),
+        );
+      }
+    } catch (_) {}
+  }
+  return fallback();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // LIST CARD
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1156,14 +1304,13 @@ class _DocumentListCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: doc.isImage
-                  ? Image.file(
-                      File(doc.filePath),
-                      width: 50, height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _iconBox(doc.category),
-                    )
-                  : _iconBox(doc.category),
+              child: _buildDocImage(
+                doc,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                fallback: () => _iconBox(doc.category),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1301,13 +1448,12 @@ class _DocumentGridCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(14)),
-                child: doc.isImage
-                    ? Image.file(File(doc.filePath),
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _placeholderPreview(doc.category))
-                    : _placeholderPreview(doc.category),
+                child: _buildDocImage(
+                  doc,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  fallback: () => _placeholderPreview(doc.category),
+                ),
               ),
             ),
             Padding(

@@ -216,7 +216,6 @@ class _EmergencySOSState extends State<EmergencySOS>
 
   Future<void> _sendSMS(String phoneNumber, String messageText) async {
     final clean = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (clean.isEmpty) return;
 
     final langCode = context.read<LanguageProvider>().langCode;
     TTSService().speakFeedback(
@@ -227,20 +226,30 @@ class _EmergencySOSState extends State<EmergencySOS>
     );
 
     // Standard native SMS scheme URI (launches system Messages app)
-    final Uri smsUri = Uri(
-      scheme: 'sms',
-      path: clean,
-      queryParameters: <String, String>{
-        'body': messageText,
-      },
-    );
+    final Uri smsUri = clean.isNotEmpty
+        ? Uri(
+            scheme: 'sms',
+            path: clean,
+            queryParameters: <String, String>{
+              'body': messageText,
+            },
+          )
+        : Uri(
+            scheme: 'sms',
+            queryParameters: <String, String>{
+              'body': messageText,
+            },
+          );
 
     try {
       if (await canLaunchUrl(smsUri)) {
         await launchUrl(smsUri, mode: LaunchMode.externalApplication);
       } else {
         // Fallback native SMS intent
-        final fallbackUri = Uri.parse('sms:$clean?body=${Uri.encodeComponent(messageText)}');
+        final fallbackStr = clean.isNotEmpty
+            ? 'sms:$clean?body=${Uri.encodeComponent(messageText)}'
+            : 'sms:?body=${Uri.encodeComponent(messageText)}';
+        final fallbackUri = Uri.parse(fallbackStr);
         await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
@@ -313,9 +322,14 @@ class _EmergencySOSState extends State<EmergencySOS>
     // Call national emergency
     await _call('112');
     
-    // Send SMS directly to all emergency contacts
-    for (final c in _contacts) {
-      await _sendSMS(c.phone, messageText);
+    // Send SMS directly to contacts if present, or divert directly to SMS app if contacts not found
+    if (_contacts.isNotEmpty) {
+      for (final c in _contacts) {
+        await _sendSMS(c.phone, messageText);
+      }
+    } else {
+      // Contacts not found -> divert message to SMS directly
+      await _sendSMS('', messageText);
     }
   }
 
@@ -875,7 +889,7 @@ class _EmergencySOSState extends State<EmergencySOS>
               activeTrackColor: _greenLight,
             ),
           ]),
-          if (_locationSharing && _contacts.isNotEmpty) ...[
+          if (_locationSharing) ...[
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF3F4F6)),
             const SizedBox(height: 10),
@@ -883,8 +897,13 @@ class _EmergencySOSState extends State<EmergencySOS>
               onTap: () async {
                 final loc = _currentLocationUrl ?? 'https://maps.google.com';
                 final msg = '🚨 SOS Live Location Update! My location: $loc';
-                for (final c in _contacts) {
-                  await _sendSMS(c.phone, msg);
+                if (_contacts.isNotEmpty) {
+                  for (final c in _contacts) {
+                    await _sendSMS(c.phone, msg);
+                  }
+                } else {
+                  // Contacts not found -> divert live location message to SMS directly
+                  await _sendSMS('', msg);
                 }
               },
               borderRadius: BorderRadius.circular(10),
@@ -898,12 +917,18 @@ class _EmergencySOSState extends State<EmergencySOS>
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.send_rounded, size: 14, color: _green),
-                    SizedBox(width: 6),
+                  children: [
+                    const Icon(Icons.send_rounded, size: 14, color: _green),
+                    const SizedBox(width: 6),
                     Text(
-                      'Send Live Location SMS to Contacts Now',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _green),
+                      _contacts.isNotEmpty
+                          ? 'Send Live Location SMS to Contacts Now'
+                          : 'Send Live Location via Direct SMS Now',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _green,
+                      ),
                     ),
                   ],
                 ),

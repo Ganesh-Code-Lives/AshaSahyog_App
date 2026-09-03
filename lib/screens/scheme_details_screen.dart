@@ -9,6 +9,7 @@ import 'document_vault.dart';
 import '../scheme_recommendation/user_eligibility_profile.dart';
 import '../scheme_recommendation/eligibility_engine.dart';
 import '../scheme_recommendation/recommendation_service.dart';
+import '../scheme_recommendation/eligibility_info_sheet.dart';
 // ─────────────────────────────────────────────
 //  DATA MODELS — field names match Supabase exactly
 // ─────────────────────────────────────────────
@@ -429,12 +430,20 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
                     matchScore: _matchScore,
                     eligibilityResult: _eligibilityResult,
                     loadingEligibility: _loadingEligibility,
+                    onUpdateProfile: () => EligibilityInfoSheet.show(
+                      context,
+                      onSaved: _loadUserEligibility,
+                    ),
                   ),
                   _BenefitsTab(benefits: _s.benefits, amount: _s.amount),
                   _EligibilityTab(
                     eligibility: _s.eligibility,
                     similarSchemes: _s.similarSchemes,
                     userProfile: _userProfile,
+                    onUpdateProfile: () => EligibilityInfoSheet.show(
+                      context,
+                      onSaved: _loadUserEligibility,
+                    ),
                   ),
                   _DocumentsTab(documents: _s.documents),
                   _HowToApplyTab(
@@ -956,12 +965,14 @@ class _OverviewTab extends StatefulWidget {
   final int? matchScore;
   final EligibilityResult? eligibilityResult;
   final bool? loadingEligibility;
+  final VoidCallback? onUpdateProfile;
 
   const _OverviewTab({
     required this.scheme,
     this.matchScore = 0,
     this.eligibilityResult,
     this.loadingEligibility = false,
+    this.onUpdateProfile,
   });
   @override
   State<_OverviewTab> createState() => _OverviewTabState();
@@ -1226,6 +1237,49 @@ class _OverviewTabState extends State<_OverviewTab> {
                     statusDescription,
                     style: const TextStyle(fontSize: 12, color: _textSub),
                   ),
+                  if (widget.onUpdateProfile != null) ...[
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: widget.onUpdateProfile,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _purpleLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _purple.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.edit_note_rounded,
+                              size: 16,
+                              color: _purple,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              AppStrings.t(
+                                context,
+                                'update_profile_details',
+                                'Update Profile Details',
+                              ),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _purple,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               );
             },
@@ -1697,11 +1751,13 @@ class _EligibilityTab extends StatelessWidget {
   final SchemeEligibility? eligibility;
   final List<SchemeSimilar> similarSchemes;
   final UserEligibilityProfile? userProfile;
+  final VoidCallback? onUpdateProfile;
 
   const _EligibilityTab({
     required this.eligibility,
     required this.similarSchemes,
     this.userProfile,
+    this.onUpdateProfile,
   });
 
   static String _fmt(int v) {
@@ -2039,6 +2095,47 @@ class _EligibilityTab extends StatelessWidget {
             ],
           ),
         ),
+        if (onUpdateProfile != null) ...[
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: onUpdateProfile,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 14,
+              ),
+              decoration: BoxDecoration(
+                color: _purpleLight,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _purple.withOpacity(0.3), width: 1.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.edit_note_rounded,
+                    size: 18,
+                    color: _purple,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    AppStrings.t(
+                      context,
+                      'update_profile_details',
+                      'Update Profile Details',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _purple,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         if (similarSchemes.isNotEmpty) ...[
           const SizedBox(height: 12),
           _SectionCard(

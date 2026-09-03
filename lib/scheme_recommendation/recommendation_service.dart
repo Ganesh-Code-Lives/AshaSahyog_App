@@ -127,46 +127,22 @@ class RecommendationService {
     );
   }
 
-  /// Calculates a score out of 100
+  /// Calculates a score out of 100 based on criteria evaluation
   int _calculateScore(EligibilityResult result, SchemeDetail detail, UserEligibilityProfile user) {
-    int score = 0;
-    
-    // Eligibility base points
-    switch (result.status) {
-      case EligibilityStatus.eligible: score += 50; break;
-      case EligibilityStatus.needsVerification: score += 20; break;
-      case EligibilityStatus.notEligible: return 0; // Immediate 0
+    if (result.status == EligibilityStatus.notEligible) {
+      final hasFailures = result.checks.any((c) => c.passed == false);
+      if (hasFailures) return 0;
     }
 
-    // Disability type relevance (fuzzy match on category or tags)
-    if (user.disabilityType != null && user.disabilityType!.isNotEmpty) {
-      final uType = user.disabilityType!.toLowerCase();
-      final cat = detail.category?.toLowerCase() ?? '';
-      final tagsStr = detail.tags.join(' ').toLowerCase();
-      if (cat.contains(uType) || tagsStr.contains(uType) || uType.contains(cat)) {
-        score += 20;
-      }
+    final totalChecks = result.checks.length;
+    if (totalChecks == 0) {
+      if (result.status == EligibilityStatus.eligible) return 100;
+      if (result.status == EligibilityStatus.needsVerification) return 50;
+      return 0;
     }
 
-    // State relevance
-    if (user.state != null && user.state!.isNotEmpty && detail.state != null && detail.state!.isNotEmpty) {
-      final uState = user.state!.toLowerCase();
-      final sState = detail.state!.toLowerCase();
-      if (uState.contains(sState) || sState.contains(uState)) {
-        score += 15;
-      }
-    }
-
-    // Profile completeness bonus
-    int completeCount = 0;
-    if (user.age != null) completeCount++;
-    if (user.disabilityType != null) completeCount++;
-    if (user.disabilityPercent != null) completeCount++;
-    if (user.annualIncome != null) completeCount++;
-    if (user.state != null) completeCount++;
-    
-    score += (completeCount * 3).clamp(0, 15);
-
+    final passedChecks = result.checks.where((c) => c.passed == true).length;
+    final score = ((passedChecks / totalChecks) * 100).round();
     return score.clamp(0, 100);
   }
 
