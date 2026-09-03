@@ -23,6 +23,7 @@ import '../providers/language_provider.dart';
 import '../models/scheme_models.dart';
 import '../components/tts_button.dart';
 import '../services/tts_service.dart';
+import '../assistant/asha_assistant_button.dart';
 
 // SchemeSummary is defined in lib/models/scheme_models.dart
 
@@ -196,10 +197,20 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 480),
           decoration: const BoxDecoration(color: _bg),
-          child: Column(children: [
-            Expanded(child: _buildBody()),
-            BottomNav(active: currentScreen, onNavigate: _navigate),
-          ]),
+          child: Stack(
+            children: [
+              Column(children: [
+                Expanded(child: _buildBody()),
+                BottomNav(active: currentScreen, onNavigate: _navigate),
+              ]),
+              if (currentScreen == 'home')
+                Positioned(
+                  right: 16,
+                  bottom: 102, // Floats cleanly above the BottomNav
+                  child: AshaAssistantButton(onNavigate: _navigate),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -290,6 +301,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       child: Stack(children: [
+        // Landscape illustration
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Image.asset(
+            'assets/images/header_bg.png',
+            fit: BoxFit.fitWidth,
+            alignment: Alignment.bottomCenter,
+          ),
+        ),
         // Decorative circles
         Positioned(top: -50, right: -40,
           child: Container(width: 180, height: 180,
@@ -455,6 +477,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Single action card — fixed height, no overflow ──
   Widget _actionCard(_ActionData a) {
+    String leafAsset;
+    if (a.screen == 'schemes') leafAsset = 'leaf_purple.png';
+    else if (a.screen == 'hospitals') leafAsset = 'leaf_green.png';
+    else if (a.screen == 'documents') leafAsset = 'leaf_blue.png';
+    else leafAsset = 'leaf_pink.png';
+
     return GestureDetector(
       onTap: () {
         final langCode = context.read<LanguageProvider>().langCode;
@@ -468,7 +496,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Container(
         height: 126,
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -480,49 +507,72 @@ class _HomeScreenState extends State<HomeScreen> {
               offset: const Offset(0, 4)),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(
-                    color: a.bgColor,
-                    borderRadius: BorderRadius.circular(12)),
-                  child: Icon(a.icon, color: a.iconColor, size: 22)),
-                Container(
-                  width: 24, height: 24,
-                  decoration: BoxDecoration(
-                    color: a.bgColor.withOpacity(0.5),
-                    shape: BoxShape.circle),
-                  child: Icon(Icons.arrow_forward_ios_rounded,
-                      size: 10, color: a.iconColor)),
-              ],
+            // Background Leaf Illustration
+            Positioned(
+              right: -5,
+              bottom: -5,
+              child: Opacity(
+                opacity: 0.65,
+                child: Image.asset(
+                  'assets/images/$leafAsset',
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(a.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: _textMain,
-                    fontSize: 14,
-                    height: 1.2),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(a.subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: _textSub,
-                    height: 1.3),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              ],
+            // Foreground Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: a.bgColor,
+                          borderRadius: BorderRadius.circular(12)),
+                        child: Icon(a.icon, color: a.iconColor, size: 22)),
+                      Container(
+                        width: 24, height: 24,
+                        decoration: BoxDecoration(
+                          color: a.bgColor.withOpacity(0.5),
+                          shape: BoxShape.circle),
+                        child: Icon(Icons.arrow_forward_ios_rounded,
+                            size: 10, color: a.iconColor)),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(a.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: _textMain,
+                          fontSize: 14,
+                          height: 1.2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(a.subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: _textSub,
+                          height: 1.3),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -595,6 +645,10 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _cardBorder, width: 1.5),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/reminder_bg.png'),
+          fit: BoxFit.fill,
+        ),
       ),
       child: Column(children: [
         Container(width: 48, height: 48,
@@ -720,10 +774,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _sectionHeader(String title, {required VoidCallback onTap, Widget? extraAction}) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(
-            fontSize: 17, fontWeight: FontWeight.w700, color: _textMain)),
+        Expanded(
+          child: Text(
+            title, 
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 17, fontWeight: FontWeight.w700, color: _textMain
+            )
+          ),
+        ),
+        const SizedBox(width: 8),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [

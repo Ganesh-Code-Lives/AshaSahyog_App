@@ -7,7 +7,10 @@ import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
 import 'providers/language_provider.dart';
 
-import 'components/tts_button.dart';
+import 'providers/asha_assistant_provider.dart';
+
+// Global state to control TTS button visibility
+final ValueNotifier<bool> showTtsButton = ValueNotifier(true);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,8 +47,11 @@ void main() async {
   ));
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => AshaAssistantProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -67,21 +73,7 @@ class MyApp extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 500),
-              child: Stack(
-                children: [
-                  child!,
-                  Positioned(
-                    top: 10,
-                    right: 12,
-                    child: SafeArea(
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: const TtsButton(tooltip: 'Toggle Voice Screen Reader'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: child!,
             ),
           ),
         );

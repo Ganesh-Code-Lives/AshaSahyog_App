@@ -52,6 +52,7 @@ dependencies:
   open_file: ^3.5.11
   provider: ^6.1.5+1
   flutter_tts: ^4.0.2
+  smooth_page_indicator: ^3.0.0
 
 dev_dependencies:
   flutter_test:

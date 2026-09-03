@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
-import '../theme/app_theme.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'login_screen.dart';
-
 import '../services/tts_service.dart';
+import '../main.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -13,288 +12,403 @@ class IntroScreen extends StatefulWidget {
 }
 
 class _IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _textController;
-  late AnimationController _buttonController;
+  final PageController _controller = PageController();
+  bool isLastPage = false;
 
-  late Animation<double> _logoFade;
-  late Animation<double> _logoScale;
-  late Animation<Offset> _textSlide;
-  late Animation<double> _textFade;
-  late Animation<Offset> _buttonSlide;
-  late Animation<double> _buttonFade;
+  late AnimationController _ringController;
+  late AnimationController _baseController;
+  late Animation<double> _baseScale;
+  late Animation<double> _baseFade;
+
+  late AnimationController _ctaController;
+  late Animation<double> _ctaOpacity;
+  late Animation<Offset> _ctaSlide;
+  late Animation<double> _ctaScale;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showTtsButton.value = false;
+    });
 
-    // 1. Logo Animation (Starts immediately)
-    _logoController = AnimationController(
+    _ringController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _logoFade = CurvedAnimation(parent: _logoController, curve: Curves.easeOut);
-    _logoScale = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
-    );
+      duration: const Duration(seconds: 15),
+    )..repeat();
 
-    // 2. Text Animation (Starts after 400ms)
-    _textController = AnimationController(
+    _baseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200),
     );
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
+    
+    _baseScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _baseController, curve: Curves.elasticOut),
     );
-    _textFade = CurvedAnimation(parent: _textController, curve: Curves.easeOut);
+    _baseFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _baseController, curve: Curves.easeIn),
+    );
 
-    // 3. Button Animation (Starts after 800ms)
-    _buttonController = AnimationController(
+    _ctaController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 650),
     );
-    _buttonSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _buttonController, curve: Curves.easeOutCubic),
+    _ctaOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctaController, curve: Curves.easeOutCubic),
     );
-    _buttonFade = CurvedAnimation(parent: _buttonController, curve: Curves.easeOut);
+    _ctaSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(parent: _ctaController, curve: Curves.easeOutCubic),
+    );
+    _ctaScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.03).chain(CurveTween(curve: Curves.easeOutCubic)), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.03, end: 1.0).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 40),
+    ]).animate(_ctaController);
 
-    // Sequence the animations
-    _logoController.forward();
-    Future.delayed(const Duration(milliseconds: 400), () => _textController.forward());
-    Future.delayed(const Duration(milliseconds: 800), () => _buttonController.forward());
+    _baseController.forward();
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
-    _buttonController.dispose();
+    showTtsButton.value = true;
+    _ringController.dispose();
+    _baseController.dispose();
+    _ctaController.dispose();
+    _controller.dispose();
     super.dispose();
+  }
+
+  void _skipOnboarding() {
+    TTSService().speakFeedback(
+      'Starting AshaSahyog',
+      hiMessage: 'आशा सहयोग शुरू किया जा रहा है',
+      mrMessage: 'आशा सहयोग सुरू करत आहे',
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Determine screen size for responsive positioning
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FC), // Fallback
-      body: Stack(
+      backgroundColor: const Color(0xFFF9F5FF), // Light purple background
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Background Image
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/onboarding_bg.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox();
+                },
+              ),
+            ),
+            
+            // Page View
+            PageView(
+              controller: _controller,
+              onPageChanged: (index) {
+                final wasLast = isLastPage;
+                setState(() {
+                  isLastPage = index == 3;
+                });
+                
+                if (isLastPage && !wasLast) {
+                  _ctaController.reset();
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (mounted && isLastPage) {
+                      _ctaController.forward();
+                    }
+                  });
+                } else if (!isLastPage) {
+                  _ctaController.reset();
+                }
+              },
+              children: [
+                _buildFirstPage(),
+                _buildPage(
+                  imagePath: 'assets/images/onboarding_phone.png',
+                  title: 'Everything You Need,\nAll in One Place',
+                  subtitle: 'Access important services and information\neasily, anytime, anywhere.',
+                ),
+                _buildPage(
+                  imagePath: 'assets/images/onboarding_hospital.png',
+                  title: 'Find Help Around You',
+                  subtitle: 'Locate nearby hospitals, clinics and\nessential services in just a few taps.',
+                ),
+                _buildPage(
+                  imagePath: 'assets/images/onboarding_bell.png',
+                  title: 'Stay Updated,\nStay Ahead',
+                  subtitle: 'Get reminders, important updates and\nnever miss what matters to you.',
+                ),
+              ],
+            ),
+
+            // Top right Skip Button
+            if (!isLastPage)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: TextButton(
+                  onPressed: _skipOnboarding,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'Skip',
+                        style: TextStyle(
+                          color: Color(0xFF5B1685),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFF5B1685),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bottom Navigation
+            Positioned(
+              bottom: 40,
+              left: 20,
+              right: 20,
+              child: isLastPage
+                  ? _buildGetStartedButton()
+                  : Center(
+                      child: SmoothPageIndicator(
+                        controller: _controller,
+                        count: 4,
+                        effect: const ExpandingDotsEffect(
+                          activeDotColor: Colors.white,
+                          dotColor: Colors.white54,
+                          dotHeight: 8,
+                          dotWidth: 8,
+                          expansionFactor: 3,
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+  Widget _buildFirstPage() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // --- Background Gradient ---
+          const Spacer(flex: 2),
+          // Logo Image Composition
+          SizedBox(
+            height: 300,
+            width: 300,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Base Image (Inner) with Fade & Scale Animation
+                FadeTransition(
+                  opacity: _baseFade,
+                  child: ScaleTransition(
+                    scale: _baseScale,
+                    child: Image.asset(
+                      'assets/bases.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.image_not_supported, size: 50, color: Colors.grey);
+                      },
+                    ),
+                  ),
+                ),
+                // Ring Image (Outer Border) with Continuous Rotation
+                RotationTransition(
+                  turns: _ringController,
+                  child: Image.asset(
+                    'assets/ring.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          // Title
+          const Text(
+            'AshaSahyog',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 38,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4A148C), // Deep Purple
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Subtitle 1
+          Text(
+            'Support. Empower. Together.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Horizontal Line
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFF8F6FC), // Soft Lavender
-                  Color(0xFFFFFFFF), // White
-                  Color(0xFFFDF4FF), // Very subtle pink hint at bottom
-                ],
-              ),
+            height: 3,
+            width: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-
-          // --- Decorative Blobs ---
-          // Top Left Blob (Purple)
-          Positioned(
-            top: -100,
-            left: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF6A1B9A).withOpacity(0.05),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF6A1B9A).withOpacity(0.05),
-                    blurRadius: 100,
-                    spreadRadius: 50,
-                  ),
-                ],
-              ),
+          const SizedBox(height: 16),
+          // Subtitle 2
+          Text(
+            'A single platform to help you access\ngovernment schemes, healthcare,\ndocuments and support services.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade800,
+              height: 1.5,
             ),
           ),
-          // Bottom Right Blob (Gold/Pink mix)
-          Positioned(
-            bottom: -80,
-            right: -80,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFF4C430).withOpacity(0.08),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFEC4899).withOpacity(0.08),
-                    blurRadius: 80,
-                    spreadRadius: 40,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Main Content ---
-          SafeArea(
-            child: SizedBox(
-              width: double.infinity,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(flex: 3), // Push content slightly up
-
-                  // 1. Logo Section
-                  ScaleTransition(
-                    scale: _logoScale,
-                    child: FadeTransition(
-                      opacity: _logoFade,
-                      child: Container(
-                        padding: const EdgeInsets.all(20), // More breathing room
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.5), // Subtle glass effect back
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6A1B9A).withOpacity(0.12),
-                              blurRadius: 40,
-                              spreadRadius: 10,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 180, // Increased size
-                          height: 180,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 180,
-                              height: 180,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                border: Border.all(color: const Color(0xFF6A1B9A).withOpacity(0.2)),
-                              ),
-                              child: const Icon(Icons.broken_image, color: Color(0xFF6A1B9A), size: 60),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // 2. Text Section
-                  SlideTransition(
-                    position: _textSlide,
-                    child: FadeTransition(
-                      opacity: _textFade,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'AshaSahyog',
-                            style: TextStyle(
-                              fontSize: 34, // Slightly larger
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF5B1685), // Darker Royal Purple for contrast
-                              letterSpacing: 0.8,
-                              height: 1.2,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Empowering Lives Together',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF6B7280).withOpacity(0.9),
-                              letterSpacing: 0.3,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(flex: 4),
-
-                  // 3. Button Section
-                  SlideTransition(
-                    position: _buttonSlide,
-                    child: FadeTransition(
-                      opacity: _buttonFade,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                        child: Container(
-                          width: double.infinity,
-                          height: 56, // Slightly taller
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24), // Softer corners
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF7C3AED), // Purple
-                                Color(0xFFEC4899), // Pink
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF7C3AED).withOpacity(0.35),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              TTSService().speakFeedback(
-                                'Starting AshaSahyog',
-                                hiMessage: 'आशा सहयोग शुरू किया जा रहा है',
-                                mrMessage: 'आशा सहयोग सुरू करत आहे',
-                              );
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              "Let's Get Started",
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          const Spacer(flex: 3),
         ],
       ),
     );
   }
+
+  Widget _buildPage({
+    required String imagePath,
+    required String title,
+    required String subtitle,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(flex: 2),
+          // Image with Pop-in Animation
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.5, end: 1.0),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: child,
+              );
+            },
+            child: Container(
+              height: 300,
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey));
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+          // Title
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4A148C), // Deep Purple
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Subtitle
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+          const Spacer(flex: 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGetStartedButton() {
+    return AnimatedBuilder(
+      animation: _ctaController,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _ctaOpacity,
+          child: SlideTransition(
+            position: _ctaSlide,
+            child: Transform.scale(
+              scale: _ctaScale.value,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7C3AED).withOpacity(0.5 * _ctaOpacity.value),
+                      blurRadius: 20 * _ctaOpacity.value,
+                      spreadRadius: 2 * _ctaOpacity.value,
+                      offset: Offset(0, 8 * _ctaOpacity.value),
+                    ),
+                  ],
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: _skipOnboarding,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF7C3AED), // Main Purple
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            elevation: 0,
+          ),
+          child: const Text(
+            "Let's Get Started",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
+
+
