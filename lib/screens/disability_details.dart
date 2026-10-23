@@ -155,7 +155,7 @@ class _DisabilityDetailsState extends State<DisabilityDetails> {
                             value: _hasDisability,
                             onChanged: (val) => setState(() => _hasDisability = val),
                             activeTrackColor: AppTheme.primary.withOpacity(0.8),
-                            activeColor: Colors.white,
+                            activeThumbColor: Colors.white,
                             inactiveTrackColor: const Color(0xFFE5E7EB),
                             inactiveThumbColor: Colors.white,
                           ),
@@ -392,7 +392,7 @@ class _DisabilityDetailsState extends State<DisabilityDetails> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _disabilityType.isEmpty ? null : _disabilityType,
+          initialValue: _disabilityType.isEmpty ? null : _disabilityType,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary),
           dropdownColor: Colors.white,
           isExpanded: true,

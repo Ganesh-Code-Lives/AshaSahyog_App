@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +16,45 @@ final ValueNotifier<bool> showTtsButton = ValueNotifier(true);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ── Global Error Handling & Error Boundary ────────────────────────
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter Framework Error: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught Platform Error: $error\n$stack');
+    return true;
+  };
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: const Color(0xFFFAF7FF),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Color(0xFF7C3AED), size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Something went wrong',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E1B2E)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                kDebugMode ? details.exceptionAsString() : 'An unexpected issue occurred. Please restart or try again.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   // Initialize notifications
   await NotificationService().init();
   
@@ -24,12 +64,19 @@ void main() async {
   // Never hardcode secrets here. See .env.example for required keys.
   const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://kfrgkhhsnyqqvqtwimbx.supabase.co',
+    defaultValue: '',
   );
   const supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmcmdraGhzbnlxcXZxdHdpbWJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTEyNTgsImV4cCI6MjA4NjYyNzI1OH0.pOSmrezElecOcCm6ANJ81nO_WN9wnc_EdLq1mwAmXZU',
+    defaultValue: '',
   );
+
+  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+    throw StateError(
+      'Missing Supabase credentials.\n'
+      'Run with: flutter run --dart-define-from-file=.env',
+    );
+  }
 
   // Initialize Supabase
   await Supabase.initialize(

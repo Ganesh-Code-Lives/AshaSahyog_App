@@ -36,9 +36,23 @@ class AshaAssistantProvider extends ChangeNotifier {
     }
   }
 
+  void clearChat() {
+    _messages.clear();
+    _hasGreeted = false;
+    _isTyping = false;
+    notifyListeners();
+  }
+
+  Future<bool> isAiConfigured() => _service.isAiConfigured();
+  Future<void> setCustomApiKey(String key) => _service.setCustomApiKey(key);
+  Future<void> clearCustomApiKey() => _service.clearCustomApiKey();
+
   Future<void> _fetchResponse(String userText) async {
     try {
-      final response = await _service.getResponse(userText);
+      final response = await _service.getResponse(
+        userText,
+        conversationHistory: _messages,
+      );
       _isTyping = false;
       addAssistantMessage(response);
     } catch (e) {

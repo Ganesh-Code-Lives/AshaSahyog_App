@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,7 +10,6 @@ import 'support.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 import '../l10n/app_strings.dart';
 import '../scheme_recommendation/eligibility_info_sheet.dart';
 
@@ -652,7 +650,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                     _buildEditableField(AppStrings.t(context, 'dob', 'Date of Birth'), _dobCtrl, hint: 'YYYY-MM-DD'),
                                     const SizedBox(height: 12),
                                     DropdownButtonFormField<String>(
-                                      value: _gender,
+                                      initialValue: _gender,
                                       decoration: InputDecoration(
                                         labelText: AppStrings.t(context, 'gender', 'Gender'),
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -747,8 +745,11 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                           checkmarkColor: AppTheme.primary,
                                           onSelected: (bool selected) {
                                             setState(() {
-                                              if (selected) _selectedDevices.add(device);
-                                              else _selectedDevices.remove(device);
+                                              if (selected) {
+                                                _selectedDevices.add(device);
+                                              } else {
+                                                _selectedDevices.remove(device);
+                                              }
                                             });
                                           },
                                         );
@@ -921,7 +922,7 @@ class _SectionCard extends StatelessWidget {
                 Expanded(
                   child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF374151))),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
           ),

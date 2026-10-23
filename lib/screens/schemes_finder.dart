@@ -7,7 +7,6 @@ import 'scheme_details_screen.dart';
 import '../scheme_recommendation/recommendation_screen.dart';
 import '../models/scheme_models.dart'; // canonical SchemeSummary
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 // ─────────────────────────────────────────────
 //  COLOURS  (mirrors scheme_details_screen.dart)
 // ─────────────────────────────────────────────
@@ -195,9 +194,9 @@ class _SchemesFinderState extends State<SchemesFinder> {
       Navigator.push(
         context,
         PageRouteBuilder(
-          pageBuilder: (_, anim, __) =>
+          pageBuilder: (_, anim, _) =>
               SchemeDetailsScreen(scheme: scheme),
-          transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          transitionsBuilder: (_, anim, _, child) => FadeTransition(
             opacity: anim,
             child: SlideTransition(
               position: Tween<Offset>(
@@ -530,7 +529,7 @@ class _SchemesFinderState extends State<SchemesFinder> {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       itemCount: 5,
-      itemBuilder: (_, __) => const _ShimmerCard(),
+      itemBuilder: (_, _) => const _ShimmerCard(),
     );
   }
 
@@ -897,7 +896,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) {
+      builder: (_, _) {
         final g = LinearGradient(
           begin: Alignment(_anim.value - 1, 0),
           end  : Alignment(_anim.value,     0),

@@ -50,17 +50,81 @@ class AshaQuickActions extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _ActionCard(
-                icon: Icons.sos_rounded,
-                title: "Emergency SOS",
-                color: AppTheme.error,
-                bgColor: const Color(0xFFFEE2E2),
-                onTap: () => onActionTap("Emergency SOS"),
+                icon: Icons.folder_shared_rounded,
+                title: "Document Vault",
+                color: const Color(0xFF2563EB),
+                bgColor: const Color(0xFFEFF6FF),
+                onTap: () => onActionTap("Tell me about the Document Vault and UDID"),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _SuggestionChip(
+                label: "♿ ADIP Scheme",
+                onTap: () => onActionTap("What is the ADIP scheme and who is eligible?"),
+              ),
+              const SizedBox(width: 8),
+              _SuggestionChip(
+                label: "🆔 UDID Card",
+                onTap: () => onActionTap("How do I get a UDID card?"),
+              ),
+              const SizedBox(width: 8),
+              _SuggestionChip(
+                label: "🚨 Emergency SOS",
+                onTap: () => onActionTap("Emergency SOS help"),
+              ),
+              const SizedBox(width: 8),
+              _SuggestionChip(
+                label: "💰 Disability Pension",
+                onTap: () => onActionTap("What disability pensions are available?"),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SuggestionChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            )
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textMain,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -90,7 +154,7 @@ class _ActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +171,7 @@ class _ActionCard extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: AppTheme.textMain.withOpacity(0.9),
+                color: AppTheme.textMain.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
                 height: 1.2,

@@ -3,7 +3,6 @@ import 'package:url_launcher/url_launcher.dart'; // add url_launcher: ^6.2.4 to 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import '../theme/app_theme.dart';
 import '../l10n/app_strings.dart';
 import 'document_vault.dart';
 import '../scheme_recommendation/user_eligibility_profile.dart';
@@ -139,15 +138,19 @@ class SchemeApplyStep {
     String title = j['title'] as String? ?? '';
     String desc = j['description'] as String? ?? '';
     if (langCode == 'hi') {
-      if ((j['title_hi'] as String?)?.isNotEmpty == true)
+      if ((j['title_hi'] as String?)?.isNotEmpty == true) {
         title = j['title_hi'] as String;
-      if ((j['description_hi'] as String?)?.isNotEmpty == true)
+      }
+      if ((j['description_hi'] as String?)?.isNotEmpty == true) {
         desc = j['description_hi'] as String;
+      }
     } else if (langCode == 'mr') {
-      if ((j['title_mr'] as String?)?.isNotEmpty == true)
+      if ((j['title_mr'] as String?)?.isNotEmpty == true) {
         title = j['title_mr'] as String;
-      if ((j['description_mr'] as String?)?.isNotEmpty == true)
+      }
+      if ((j['description_mr'] as String?)?.isNotEmpty == true) {
         desc = j['description_mr'] as String;
+      }
     }
     return SchemeApplyStep(
       stepNumber: j['step_number'] as int? ?? 0,
@@ -257,15 +260,19 @@ class SchemeDetail {
     String title = j['title'] as String? ?? '';
     String? summary = j['summary'] as String?;
     if (langCode == 'hi') {
-      if ((j['title_hi'] as String?)?.isNotEmpty == true)
+      if ((j['title_hi'] as String?)?.isNotEmpty == true) {
         title = j['title_hi'] as String;
-      if ((j['summary_hi'] as String?)?.isNotEmpty == true)
+      }
+      if ((j['summary_hi'] as String?)?.isNotEmpty == true) {
         summary = j['summary_hi'] as String;
+      }
     } else if (langCode == 'mr') {
-      if ((j['title_mr'] as String?)?.isNotEmpty == true)
+      if ((j['title_mr'] as String?)?.isNotEmpty == true) {
         title = j['title_mr'] as String;
-      if ((j['summary_mr'] as String?)?.isNotEmpty == true)
+      }
+      if ((j['summary_mr'] as String?)?.isNotEmpty == true) {
         summary = j['summary_mr'] as String;
+      }
     }
 
     return SchemeDetail(
@@ -293,7 +300,6 @@ class SchemeDetail {
 // ─────────────────────────────────────────────
 const _purple = Color(0xFF7C3AED);
 const _purpleLight = Color(0xFFEDE9FE);
-const _purpleMid = Color(0xFFA855F7);
 const _green = Color(0xFF15803D);
 const _greenLight = Color(0xFFDCFCE7);
 const _amber = Color(0xFFB45309);
@@ -399,7 +405,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -407,6 +413,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen>
             ),
           ),
         );
+      }
     }
   }
 
@@ -790,36 +797,6 @@ class _HeroStat extends StatelessWidget {
   );
 }
 
-class _HeroTag extends StatelessWidget {
-  final String label;
-  final bool isGreen;
-  const _HeroTag(this.label, {this.isGreen = false});
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: isGreen
-          ? const Color(0xFF4ADE80).withOpacity(0.2)
-          : Colors.white.withOpacity(0.15),
-      borderRadius: BorderRadius.circular(100),
-      border: Border.all(
-        color: isGreen
-            ? const Color(0xFF4ADE80).withOpacity(0.35)
-            : Colors.white.withOpacity(0.22),
-        width: 1,
-      ),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        color: isGreen ? const Color(0xFFBBF7D0) : const Color(0xFFE9D5FF),
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  );
-}
-
 class _HeroIconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -992,18 +969,20 @@ class _OverviewTabState extends State<_OverviewTab> {
     _tts.setVolume(1.0);
     _tts.setPitch(1.0);
     _tts.setCompletionHandler(() {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isSpeaking = false;
           _isPaused = false;
         });
+      }
     });
     _tts.setCancelHandler(() {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isSpeaking = false;
           _isPaused = false;
         });
+      }
     });
   }
 
@@ -1025,8 +1004,9 @@ class _OverviewTabState extends State<_OverviewTab> {
       buf.write('Benefits: ');
       for (final b in s.benefits) {
         buf.write(b.text);
-        if (b.valueLabel != null)
+        if (b.valueLabel != null) {
           buf.write(', ${b.valueLabel} ${b.unit ?? ""} ');
+        }
         buf.write('. ');
       }
     }
@@ -1050,20 +1030,22 @@ class _OverviewTabState extends State<_OverviewTab> {
       // Resume — flutter_tts doesn’t support true resume, so restart
       await _tts.stop();
       await _tts.speak(_buildSpeechText());
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isSpeaking = true;
           _isPaused = false;
         });
+      }
     } else {
       // Start fresh
       await _tts.stop();
       final result = await _tts.speak(_buildSpeechText());
-      if (result == 1 && mounted)
+      if (result == 1 && mounted) {
         setState(() {
           _isSpeaking = true;
           _isPaused = false;
         });
+      }
     }
   }
 
@@ -1086,11 +1068,12 @@ class _OverviewTabState extends State<_OverviewTab> {
 
   Future<void> _stopTts() async {
     await _tts.stop();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _isSpeaking = false;
         _isPaused = false;
       });
+    }
   }
 
   @override
@@ -2395,16 +2378,20 @@ class _DocumentsTabState extends State<_DocumentsTab> {
 
   IconData _icon(String name) {
     final d = name.toLowerCase();
-    if (d.contains('aadhaar') || d.contains('identity'))
+    if (d.contains('aadhaar') || d.contains('identity')) {
       return Icons.badge_outlined;
+    }
     if (d.contains('disability')) return Icons.medical_services_outlined;
-    if (d.contains('bank') || d.contains('passbook'))
+    if (d.contains('bank') || d.contains('passbook')) {
       return Icons.account_balance_outlined;
+    }
     if (d.contains('income')) return Icons.receipt_long_outlined;
-    if (d.contains('residence') || d.contains('domicile'))
+    if (d.contains('residence') || d.contains('domicile')) {
       return Icons.location_on_outlined;
-    if (d.contains('enrollment') || d.contains('admission'))
+    }
+    if (d.contains('enrollment') || d.contains('admission')) {
       return Icons.school_outlined;
+    }
     if (d.contains('business')) return Icons.business_outlined;
     return Icons.description_outlined;
   }

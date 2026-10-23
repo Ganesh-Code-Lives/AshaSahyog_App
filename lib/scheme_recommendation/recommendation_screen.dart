@@ -11,7 +11,6 @@ import 'recommendation_service.dart';
 import 'recommended_scheme_model.dart';
 import 'user_eligibility_profile.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 
 // ─────────────────────────────────────────────
 // COLOURS
@@ -125,8 +124,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       Navigator.push(
         context,
         PageRouteBuilder(
-          pageBuilder: (_, anim, __) => SchemeDetailsScreen(scheme: detail),
-          transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          pageBuilder: (_, anim, _) => SchemeDetailsScreen(scheme: detail),
+          transitionsBuilder: (_, anim, _, child) => FadeTransition(
             opacity: anim,
             child: SlideTransition(
               position: Tween<Offset>(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'personal_details.dart';
 import 'intro_screen.dart';
@@ -17,7 +16,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -76,7 +74,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
 
     // Start fade-out before navigation
-    setState(() => _isNavigating = true);
     await _fadeController.reverse();
 
     if (!mounted) return;
@@ -97,8 +94,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
-        transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
+        pageBuilder: (_, _, _) => const HomeScreen(),
+        transitionsBuilder: (_, a, _, c) => FadeTransition(opacity: a, child: c),
         transitionDuration: const Duration(milliseconds: 500),
       ),
       (route) => false,
@@ -109,8 +106,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => PersonalDetails(email: email),
-        transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
+        pageBuilder: (_, _, _) => PersonalDetails(email: email),
+        transitionsBuilder: (_, a, _, c) => FadeTransition(opacity: a, child: c),
         transitionDuration: const Duration(milliseconds: 500),
       ),
       (route) => false,
@@ -121,8 +118,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const IntroScreen(),
-        transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
+        pageBuilder: (_, _, _) => const IntroScreen(),
+        transitionsBuilder: (_, a, _, c) => FadeTransition(opacity: a, child: c),
         transitionDuration: const Duration(milliseconds: 500),
       ),
       (route) => false,

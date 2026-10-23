@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 import '../theme/app_theme.dart';
 
 class HospitalLocator extends StatefulWidget {
@@ -141,8 +140,6 @@ class _HospitalLocatorState extends State<HospitalLocator>
 out center body;
 ''';
 
-    Exception? lastError;
-
     for (final mirror in overpassMirrors) {
       try {
         final uri = Uri.parse(mirror);
@@ -185,8 +182,9 @@ out center body;
 
             // Build a better address from available tags
             final List<String> addrParts = [];
-            if (tags['addr:housenumber'] != null)
+            if (tags['addr:housenumber'] != null) {
               addrParts.add(tags['addr:housenumber']);
+            }
             if (tags['addr:street'] != null) addrParts.add(tags['addr:street']);
             if (tags['addr:suburb'] != null) addrParts.add(tags['addr:suburb']);
             if (tags['addr:city'] != null) addrParts.add(tags['addr:city']);
@@ -234,7 +232,7 @@ out center body;
           return; // Success — exit loop
         }
       } catch (e) {
-        lastError = Exception(e.toString());
+        debugPrint('Overpass mirror failed: $e');
         continue; // Try next mirror
       }
     }
@@ -288,13 +286,6 @@ out center body;
     }
   }
 
-  Future<void> _callHospital(String phone) async {
-    final Uri telUri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(telUri)) {
-      await launchUrl(telUri);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -329,7 +320,7 @@ out center body;
                           options: MapOptions(
                             initialCenter: _currentPosition!,
                             initialZoom: 14.0,
-                            onTap: (_, __) =>
+                            onTap: (_, _) =>
                                 setState(() => _selectedHospital = null),
                           ),
                           children: [
@@ -676,7 +667,7 @@ out center body;
                                             horizontal: 20, vertical: 4),
                                         itemCount:
                                             _filteredHospitals.length + 1,
-                                        separatorBuilder: (_, __) =>
+                                        separatorBuilder: (_, _) =>
                                             const SizedBox(height: 12),
                                         itemBuilder: (context, index) {
                                           if (index ==

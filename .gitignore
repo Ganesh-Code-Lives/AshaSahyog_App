@@ -65,3 +65,9 @@ final_check_utf8.txt
 home_errors.txt
 home_utf8.txt
 *.tmp
+
+# ── Additional temp / generated files ─────────────────────────
+flutter_01.log
+*.log
+crop.py
+*.lnk

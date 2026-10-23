@@ -13,7 +13,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -463,7 +462,7 @@ class _DocumentVaultState extends State<DocumentVault>
                                       ? Image.network(
                                           filePath,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
+                                          errorBuilder: (_, _, _) =>
                                               const Icon(Icons.image_rounded,
                                                   color: Color(0xFF0284C7),
                                                   size: 28),
@@ -1082,7 +1081,7 @@ class _DocumentVaultState extends State<DocumentVault>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: docs.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
         if (i == docs.length) return const SizedBox(height: 80);
         return _DocumentListCard(
@@ -1245,7 +1244,7 @@ Widget _buildDocImage(
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) => fallback(),
+      errorBuilder: (_, _, _) => fallback(),
     );
   }
   if (!kIsWeb) {
@@ -1257,7 +1256,7 @@ Widget _buildDocImage(
           width: width,
           height: height,
           fit: fit,
-          errorBuilder: (_, __, ___) => fallback(),
+          errorBuilder: (_, _, _) => fallback(),
         );
       }
     } catch (_) {}

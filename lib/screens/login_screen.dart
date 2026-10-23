@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'signup_screen.dart';
 import 'splash_screen.dart';
@@ -88,6 +87,111 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    final resetEmailController = TextEditingController(text: _emailController.text.trim());
+    final dialogFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Reset Password',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E1B2E)),
+              ),
+              content: Form(
+                key: dialogFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Enter your registered email address and we will send you a password reset link.',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: resetEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'Email Address',
+                        prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF6C3CC9)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Please enter email';
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!dialogFormKey.currentState!.validate()) return;
+                          setDialogState(() => isSubmitting = true);
+                          final email = resetEmailController.text.trim().toLowerCase();
+                          try {
+                            await _authService.resetPasswordForEmail(email);
+                            if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password reset link sent to your email!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() => isSubmitting = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed: ${e.toString().replaceAll("Exception: ", "")}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C3CC9),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Send Link'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -206,9 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          // Optionally handle forgot password
-                        },
+                        onPressed: _handleForgotPassword,
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF6C3CC9),
                           textStyle: const TextStyle(fontWeight: FontWeight.w600),

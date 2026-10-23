@@ -230,6 +230,20 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
                 ),
               ),
               
+              // AI Settings Button
+              IconButton(
+                icon: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 20),
+                tooltip: "Gemini AI Settings",
+                onPressed: () => _showApiKeyDialog(context),
+              ),
+
+              // Restart Conversation Button
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: AppTheme.textSecondary, size: 20),
+                tooltip: "Restart Chat",
+                onPressed: () => _handleRestart(context),
+              ),
+
               // Close Button
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
@@ -240,6 +254,140 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
         ],
       ),
     );
+  }
+
+  Future<void> _showApiKeyDialog(BuildContext context) async {
+    final provider = context.read<AshaAssistantProvider>();
+    final isConfigured = await provider.isAiConfigured();
+    final keyController = TextEditingController();
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.auto_awesome_rounded, color: AppTheme.primary),
+              SizedBox(width: 8),
+              Text('Gemini AI Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isConfigured ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isConfigured ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                      color: isConfigured ? AppTheme.success : const Color(0xFFD97706),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isConfigured ? 'Gemini AI is Active' : 'Smart Offline Knowledge Mode',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isConfigured ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Enter your Google Gemini API key to enable live AI responses. Leave empty to use the built-in offline knowledge engine.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: keyController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: 'Paste Gemini API Key...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.key_rounded, size: 18),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            if (isConfigured)
+              TextButton(
+                onPressed: () async {
+                  await provider.clearCustomApiKey();
+                  if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Switched to Offline Knowledge Mode')),
+                    );
+                  }
+                },
+                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final key = keyController.text.trim();
+                if (key.isNotEmpty) {
+                  await provider.setCustomApiKey(key);
+                  if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Gemini API Key saved!')),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Save Key'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _handleRestart(BuildContext context) {
+    final provider = context.read<AshaAssistantProvider>();
+    provider.clearChat();
+    provider.setHasGreeted(true);
+    provider.addAssistantMessage(
+      ChatMessage(
+        text: "Hello 👋\n\nI'm Asha, your personal AshaSahyog assistant.\n\nI can help you find government schemes, locate nearby healthcare services, manage reminders, or get emergency assistance.",
+        isUser: false,
+      ),
+      speak: false,
+    );
+    Future.delayed(const Duration(milliseconds: 400), () {
+      provider.addAssistantMessage(
+        ChatMessage(
+          text: "How can I help you today?",
+          isUser: false,
+        ),
+        speak: false,
+      );
+    });
   }
 
   Widget _buildComposer() {

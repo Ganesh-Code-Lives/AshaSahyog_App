@@ -313,7 +313,7 @@ class _PersonalDetailsState extends State<PersonalDetails> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _gender.isEmpty ? null : _gender,
+          initialValue: _gender.isEmpty ? null : _gender,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary),
           dropdownColor: Colors.white,
           isExpanded: true,

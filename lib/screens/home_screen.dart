@@ -21,7 +21,6 @@ import '../scheme_recommendation/recommendation_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../models/scheme_models.dart';
-import '../components/tts_button.dart';
 import '../services/tts_service.dart';
 import '../assistant/asha_assistant_button.dart';
 
@@ -103,10 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
               b.time.hour, b.time.minute);
           return at.compareTo(bt);
         });
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _upcomingReminders = upcoming.take(3).toList();
         _loadingReminders  = false;
       });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingReminders = false);
     }
@@ -121,12 +122,14 @@ class _HomeScreenState extends State<HomeScreen> {
           .select('id, title, category, state, summary, amount, active')
           .eq('active', true)
           .limit(5);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _recommendedSchemes = (data as List)
             .map((j) => SchemeSummary.fromJson(j as Map<String, dynamic>))
             .toList();
         _loadingSchemes = false;
       });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingSchemes = false);
     }
@@ -169,9 +172,11 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('Profile load error: $e');
     }
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _profileImageBase64 = prefs.getString('profileImageBase64');
     });
+    }
   }
 
   void _navigate(String screen) {
@@ -217,20 +222,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody() {
-    if (currentScreen == 'schemes')
+    if (currentScreen == 'schemes') {
       return SchemesFinder(onBack: () => _navigate('home'));
-    if (currentScreen == 'recommendations')
+    }
+    if (currentScreen == 'recommendations') {
       return RecommendationScreen(onBack: () => _navigate('home'));
-    if (currentScreen == 'hospitals')
+    }
+    if (currentScreen == 'hospitals') {
       return HospitalLocator(onBack: () => _navigate('home'));
-    if (currentScreen == 'documents')
+    }
+    if (currentScreen == 'documents') {
       return DocumentVault(onBack: () => _navigate('home'));
-    if (currentScreen == 'reminders')
+    }
+    if (currentScreen == 'reminders') {
       return Reminders(onBack: () => _navigate('home'));
-    if (currentScreen == 'support')
+    }
+    if (currentScreen == 'support') {
       return Support(onBack: () => _navigate('home'));
-    if (currentScreen == 'sos')
+    }
+    if (currentScreen == 'sos') {
       return EmergencySOS(onBack: () => _navigate('home'));
+    }
     if (currentScreen == 'profile') {
       return Profile(
         onBack          : () => _navigate('home'),
@@ -255,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? certificateNumber : null,
           assistiveDevices : assistiveDevices,
         ),
-        mobile: phoneNumber.isNotEmpty ? phoneNumber : '9876543210',
+        mobile: phoneNumber.isNotEmpty ? phoneNumber : null,
       );
     }
 
@@ -478,8 +490,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Single action card — fixed height, no overflow ──
   Widget _actionCard(_ActionData a) {
     String leafAsset;
-    if (a.screen == 'schemes') leafAsset = 'leaf_purple.png';
-    else if (a.screen == 'hospitals') leafAsset = 'leaf_green.png';
+    if (a.screen == 'schemes') {
+      leafAsset = 'leaf_purple.png';
+    } else if (a.screen == 'hospitals') leafAsset = 'leaf_green.png';
     else if (a.screen == 'documents') leafAsset = 'leaf_blue.png';
     else leafAsset = 'leaf_pink.png';
 
@@ -725,8 +738,8 @@ class _HomeScreenState extends State<HomeScreen> {
               scrollDirection: Axis.horizontal,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 3,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, __) =>
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, _) =>
                   const _Shimmer(width: 240, height: 190, radius: 16),
             ),
           )
@@ -756,7 +769,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _recommendedSchemes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, i) => _schemeCard(
                 _recommendedSchemes[i],
                 colors[i % colors.length],
@@ -1006,7 +1019,7 @@ class _ShimmerState extends State<_Shimmer>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _anim,
-    builder: (_, __) => Container(
+    builder: (_, _) => Container(
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(

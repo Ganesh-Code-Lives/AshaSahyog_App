@@ -50,6 +50,18 @@ class AuthService {
     }
   }
 
+  Future<void> resetPasswordForEmail(String email) async {
+    try {
+      await supabase.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      debugPrint("Supabase Password Reset Exception: ${e.message}");
+      rethrow;
+    } catch (e) {
+      debugPrint("General Password Reset Exception: $e");
+      rethrow;
+    }
+  }
+
   User? getCurrentUser() {
     return supabase.auth.currentUser;
   }

@@ -8,12 +8,9 @@ import '../theme/app_theme.dart';
 //  COLOURS  (matches app design system)
 // ─────────────────────────────────────────────
 const _purple      = Color(0xFF7C3AED);
-const _purpleLight = Color(0xFFEDE9FE);
-const _purpleMid   = Color(0xFFA855F7);
 const _bg          = Color(0xFFFAF7FF);
 const _cardBorder  = Color(0xFFEDE9FE);
 const _textMain    = Color(0xFF1E1B2E);
-const _textSub     = Color(0xFF6B7280);
 
 class CreateReminderScreen extends StatefulWidget {
   final Reminder? existingReminder;
@@ -305,7 +302,7 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
         const Text('Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textMain)),
         const SizedBox(height: 8),
         DropdownButtonFormField<ReminderType>(
-          value: _selectedType,
+          initialValue: _selectedType,
           style: const TextStyle(color: _textMain, fontSize: 14, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.category_rounded, color: _purple, size: 20),
@@ -338,7 +335,7 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
         const Text('Repeat Frequency', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textMain)),
         const SizedBox(height: 8),
         DropdownButtonFormField<RepeatType>(
-          value: _selectedRepeat,
+          initialValue: _selectedRepeat,
           style: const TextStyle(color: _textMain, fontSize: 14, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.repeat_rounded, color: _purple, size: 20),

@@ -44,14 +44,7 @@ class AshaChatMessageBubble extends StatelessWidget {
                     ),
                     border: isUser ? null : Border.all(color: AppTheme.border, width: 1.5),
                   ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(
-                      color: isUser ? Colors.white : AppTheme.textMain,
-                      fontSize: 15,
-                      height: 1.4,
-                    ),
-                  ),
+                  child: _buildContent(isUser),
                 ),
                 
                 if (message.actionLabel != null && onActionTap != null) ...[
@@ -63,7 +56,7 @@ class AshaChatMessageBubble extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.purpleLight,
                         borderRadius: BorderRadius.circular(100),
-                        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -116,6 +109,34 @@ class AshaChatMessageBubble extends StatelessWidget {
     );
   }
 
+  Widget _buildContent(bool isUser) {
+    final baseStyle = TextStyle(
+      color: isUser ? Colors.white : AppTheme.textMain,
+      fontSize: 15,
+      height: 1.45,
+    );
+
+    final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.bold);
+    final text = message.text;
+
+    if (!text.contains('**')) {
+      return Text(text, style: baseStyle);
+    }
+
+    final spans = <TextSpan>[];
+    final parts = text.split('**');
+    for (int i = 0; i < parts.length; i++) {
+      if (parts[i].isEmpty) continue;
+      final isBold = i % 2 == 1;
+      spans.add(TextSpan(
+        text: parts[i],
+        style: isBold ? boldStyle : baseStyle,
+      ));
+    }
+
+    return RichText(text: TextSpan(children: spans));
+  }
+
   Widget _buildAvatar() {
     return Container(
       width: 28,
@@ -125,7 +146,7 @@ class AshaChatMessageBubble extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withOpacity(0.3),
+            color: AppTheme.primary.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           )

@@ -317,7 +317,7 @@ class _IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin
                 child: child,
               );
             },
-            child: Container(
+            child: SizedBox(
               height: 300,
               child: Image.asset(
                 imagePath,

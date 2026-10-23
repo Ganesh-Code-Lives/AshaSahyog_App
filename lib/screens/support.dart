@@ -3,8 +3,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
-import '../theme/app_theme.dart';
 import '../l10n/app_strings.dart';
 
 // ─────────────────────────────────────────────

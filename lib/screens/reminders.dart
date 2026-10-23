@@ -8,18 +8,14 @@ import '../l10n/app_strings.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
-import '../components/tts_button.dart';
 
 // ─────────────────────────────────────────────
 //  COLOURS  (matches app design system)
 // ─────────────────────────────────────────────
 const _purple      = Color(0xFF7C3AED);
 const _purpleLight = Color(0xFFEDE9FE);
-const _purpleMid   = Color(0xFFA855F7);
 const _green       = Color(0xFF15803D);
 const _greenLight  = Color(0xFFDCFCE7);
-const _blue        = Color(0xFF1D4ED8);
-const _blueLight   = Color(0xFFDBEAFE);
 const _pink        = Color(0xFFBE185D);
 const _pinkLight   = Color(0xFFFCE7F3);
 const _orange      = Color(0xFFEA580C);
