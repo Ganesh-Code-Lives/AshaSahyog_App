@@ -12,6 +12,7 @@ import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
 import '../l10n/app_strings.dart';
 import '../scheme_recommendation/eligibility_info_sheet.dart';
+import '../components/tts_button.dart';
 
 class Profile extends StatefulWidget {
   final VoidCallback onBack;
@@ -505,6 +506,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
                             ),
                             const Spacer(),
+                            const TtsButton(translucent: true),
                           ],
                         ),
                       ),
@@ -833,6 +835,34 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LanguageSelection(onComplete: (lang) => Navigator.pop(context)))),
                               ),
                               Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: TTSService().voiceFeedbackNotifier,
+                                builder: (context, isVoiceOn, _) {
+                                  return _SettingsTile(
+                                    icon: isVoiceOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                                    color: isVoiceOn ? const Color(0xFF7C3AED) : const Color(0xFF6B7280),
+                                    bgColor: isVoiceOn ? const Color(0xFFEDE9FE) : const Color(0xFFF3F4F6),
+                                    title: AppStrings.t(context, 'voice_output', 'Voice Output'),
+                                    subtitle: isVoiceOn
+                                        ? AppStrings.t(context, 'voice_on', 'Voice ON')
+                                        : AppStrings.t(context, 'voice_off', 'Voice OFF'),
+                                    trailing: Switch.adaptive(
+                                      value: isVoiceOn,
+                                      activeThumbColor: AppTheme.primary,
+                                      activeTrackColor: AppTheme.purpleLight,
+                                      onChanged: (val) {
+                                        final lang = context.read<LanguageProvider>().langCode;
+                                        TTSService().setVoiceFeedbackEnabled(val, langCode: lang);
+                                      },
+                                    ),
+                                    onTap: () {
+                                      final lang = context.read<LanguageProvider>().langCode;
+                                      TTSService().toggleVoiceFeedback(langCode: lang);
+                                    },
+                                  );
+                                },
+                              ),
+                              Divider(height: 1, color: AppTheme.border, indent: 56, endIndent: 20),
                               _SettingsTile(
                                 icon: Icons.lock_outline_rounded, color: const Color(0xFFBE185D), bgColor: const Color(0xFFFCE7F3), title: AppStrings.t(context, 'change_password', 'Change Password'),
                                 onTap: _showChangePasswordDialog,
@@ -979,9 +1009,19 @@ class _SettingsTile extends StatelessWidget {
   final Color color;
   final Color bgColor;
   final String title;
+  final String? subtitle;
+  final Widget? trailing;
   final VoidCallback? onTap;
 
-  const _SettingsTile({required this.icon, required this.color, required this.bgColor, required this.title, this.onTap});
+  const _SettingsTile({
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -992,7 +1032,10 @@ class _SettingsTile extends StatelessWidget {
         child: Icon(icon, color: color, size: 20),
       ),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA3AF), size: 20),
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)))
+          : null,
+      trailing: trailing ?? const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA3AF), size: 20),
       onTap: onTap,
     );
   }

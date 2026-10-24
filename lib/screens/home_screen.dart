@@ -23,6 +23,7 @@ import '../providers/language_provider.dart';
 import '../models/scheme_models.dart';
 import '../services/tts_service.dart';
 import '../assistant/asha_assistant_button.dart';
+import '../components/tts_button.dart';
 
 // SchemeSummary is defined in lib/models/scheme_models.dart
 
@@ -373,36 +374,44 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Avatar
-                GestureDetector(
-                  onTap: () => _navigate('profile'),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.2),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.5),
-                        width: 2),
+                const SizedBox(width: 12),
+                // Avatar & Voice Toggle
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _navigate('profile'),
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.2),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.5),
+                            width: 2),
+                        ),
+                        child: ClipOval(
+                          child: _profileImageBase64 != null
+                            ? Image.memory(
+                                base64Decode(_profileImageBase64!),
+                                fit: BoxFit.cover,
+                                width: 50, height: 50)
+                            : Center(
+                                child: Text(
+                                  fullName.isNotEmpty
+                                      ? fullName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700))),
+                        ),
+                      ),
                     ),
-                    child: ClipOval(
-                      child: _profileImageBase64 != null
-                        ? Image.memory(
-                            base64Decode(_profileImageBase64!),
-                            fit: BoxFit.cover,
-                            width: 52, height: 52)
-                        : Center(
-                            child: Text(
-                              fullName.isNotEmpty
-                                  ? fullName[0].toUpperCase() : 'U',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700))),
-                    ),
-                  ),
+                    const SizedBox(height: 8),
+                    const TtsButton(translucent: true),
+                  ],
                 ),
               ],
             ),

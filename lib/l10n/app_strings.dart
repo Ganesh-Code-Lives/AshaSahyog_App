@@ -254,6 +254,26 @@ class AppStrings {
       'hi': 'सेटिंग्स और प्राथमिकताएं',
       'mr': 'सेटिंग्ज आणि प्राधान्ये',
     },
+    'voice_output': {
+      'en': 'Voice Output',
+      'hi': 'वॉयस आउटपुट',
+      'mr': 'व्हॉइस आउटपुट',
+    },
+    'voice_output_desc': {
+      'en': 'Read aloud screen content, buttons, and assistant replies',
+      'hi': 'स्क्रीन सामग्री, बटन और सहायक के उत्तर बोलकर पढ़ें',
+      'mr': 'स्क्रीनवरील मजकूर, बटणे आणि सहाय्यकाची उत्तरे मोठ्याने वाचा',
+    },
+    'voice_on': {
+      'en': 'Voice ON',
+      'hi': 'वॉयस ऑन',
+      'mr': 'व्हॉइस ऑन',
+    },
+    'voice_off': {
+      'en': 'Voice OFF',
+      'hi': 'वॉयस ऑफ',
+      'mr': 'व्हॉइस ऑफ',
+    },
     'profile_about': {
       'en': 'About AshaSahyog',
       'hi': 'आशा सहयोग के बारे में',

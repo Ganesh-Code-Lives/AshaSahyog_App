@@ -6,6 +6,7 @@ import 'asha_chat_message_bubble.dart';
 import 'asha_quick_actions.dart';
 import 'asha_typing_indicator.dart';
 import 'models/chat_message.dart';
+import '../components/tts_button.dart';
 
 class AshaAssistantSheet extends StatefulWidget {
   final Function(String route) onNavigate;
@@ -230,6 +231,10 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
                 ),
               ),
               
+              // Voice Output Toggle Button
+              const TtsButton(compact: true),
+              const SizedBox(width: 4),
+
               // AI Settings Button
               IconButton(
                 icon: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 20),

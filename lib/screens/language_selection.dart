@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/language_provider.dart';
+import '../services/tts_service.dart';
+import '../l10n/app_strings.dart';
 
 class LanguageSelection extends StatefulWidget {
   final Function(String)? onComplete;
@@ -174,6 +176,90 @@ class _LanguageSelectionState extends State<LanguageSelection> {
                                 ),
                               ],
                             ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      AppStrings.t(context, 'voice_output', 'Voice Output'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      AppStrings.t(context, 'voice_output_desc', 'Read aloud screen content, buttons, and assistant replies'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: TTSService().voiceFeedbackNotifier,
+                      builder: (context, isVoiceOn, _) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isVoiceOn ? AppTheme.primary : const Color(0xFFE5E7EB),
+                              width: isVoiceOn ? 2 : 1,
+                            ),
+                            boxShadow: isVoiceOn
+                                ? [
+                                    BoxShadow(
+                                      color: AppTheme.primary.withOpacity(0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: SwitchListTile.adaptive(
+                            value: isVoiceOn,
+                            activeThumbColor: AppTheme.primary,
+                            activeTrackColor: AppTheme.purpleLight,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            secondary: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isVoiceOn ? AppTheme.purpleVeryLight : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                isVoiceOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                                color: isVoiceOn ? AppTheme.primary : const Color(0xFF6B7280),
+                                size: 24,
+                              ),
+                            ),
+                            title: Text(
+                              AppStrings.t(context, 'voice_output', 'Voice Output'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textMain,
+                              ),
+                            ),
+                            subtitle: Text(
+                              isVoiceOn
+                                  ? AppStrings.t(context, 'voice_on', 'Voice ON')
+                                  : AppStrings.t(context, 'voice_off', 'Voice OFF'),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isVoiceOn ? AppTheme.primary : AppTheme.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final lang = selectedLanguage.isNotEmpty
+                                  ? selectedLanguage
+                                  : context.read<LanguageProvider>().langCode;
+                              TTSService().setVoiceFeedbackEnabled(val, langCode: lang);
+                            },
                           ),
                         );
                       },

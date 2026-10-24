@@ -42,51 +42,60 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   Future<void> _checkUser() async {
     final startTime = DateTime.now();
-
-    // Perform the async logic (Supabase check)
-    final user = Supabase.instance.client.auth.currentUser;
     bool profileCompleted = false;
-    String? userEmail = user?.email;
+    String? userEmail;
+    bool isLoggedIn = false;
 
-    if (user != null) {
-      try {
-        final data = await Supabase.instance.client
-            .from('profiles')
-            .select('has_completed_profile')
-            .eq('id', user.id)
-            .maybeSingle();
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        isLoggedIn = true;
+        userEmail = user.email;
+        try {
+          final data = await Supabase.instance.client
+              .from('profiles')
+              .select('has_completed_profile')
+              .eq('id', user.id)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 4));
 
-        if (data != null && data['has_completed_profile'] == true) {
+          if (data != null && data['has_completed_profile'] == true) {
+            profileCompleted = true;
+          }
+        } catch (e) {
+          debugPrint("Failed to fetch profile during splash: $e");
+          // If check fails due to network/timeout, allow logged-in user to proceed to home
           profileCompleted = true;
         }
-      } catch (e) {
-        debugPrint("Failed to fetch profile: $e");
       }
-    }
-
-    // Ensure splash shows for at least 3 seconds
-    final elapsed = DateTime.now().difference(startTime);
-    final remaining = const Duration(seconds: 3) - elapsed;
-    if (remaining > Duration.zero) {
-      await Future.delayed(remaining);
-    }
-
-    if (!mounted) return;
-
-    // Start fade-out before navigation
-    await _fadeController.reverse();
-
-    if (!mounted) return;
-
-    // Based on logic results, navigate to the correct screen
-    if (user != null) {
-      if (profileCompleted) {
-        _navigateToHome();
-      } else {
-        _navigateToPersonalDetails(userEmail ?? '');
+    } catch (e) {
+      debugPrint("Error checking auth status in splash: $e");
+    } finally {
+      // Ensure splash shows for a smooth duration (minimum 2 seconds)
+      final elapsed = DateTime.now().difference(startTime);
+      final remaining = const Duration(seconds: 2) - elapsed;
+      if (remaining > Duration.zero) {
+        await Future.delayed(remaining);
       }
-    } else {
-      _navigateToIntro();
+
+      if (mounted) {
+        try {
+          await _fadeController.reverse();
+        } catch (_) {}
+
+        if (mounted) {
+          // Based on auth results, navigate to the correct screen
+          if (isLoggedIn) {
+            if (profileCompleted) {
+              _navigateToHome();
+            } else {
+              _navigateToPersonalDetails(userEmail ?? '');
+            }
+          } else {
+            _navigateToIntro();
+          }
+        }
+      }
     }
   }
 

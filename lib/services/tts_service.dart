@@ -60,7 +60,12 @@ class TTSService {
 
   /// Toggles global voice feedback mode on or off.
   Future<void> toggleVoiceFeedback({String langCode = 'en'}) async {
-    isVoiceFeedbackEnabled = !isVoiceFeedbackEnabled;
+    await setVoiceFeedbackEnabled(!isVoiceFeedbackEnabled, langCode: langCode);
+  }
+
+  /// Explicitly sets global voice feedback mode on or off.
+  Future<void> setVoiceFeedbackEnabled(bool enabled, {String langCode = 'en'}) async {
+    isVoiceFeedbackEnabled = enabled;
     voiceFeedbackNotifier.value = isVoiceFeedbackEnabled;
     
     final prefs = await SharedPreferences.getInstance();
@@ -82,8 +87,9 @@ class TTSService {
     String? hiMessage,
     String? mrMessage,
     String langCode = 'en',
+    bool force = false,
   }) async {
-    if (!isVoiceFeedbackEnabled) return;
+    if (!isVoiceFeedbackEnabled && !force) return;
 
     String msg = enMessage;
     if (langCode == 'hi' && hiMessage != null) msg = hiMessage;
@@ -93,7 +99,12 @@ class TTSService {
   }
 
   /// Speaks main screen content or long text descriptions.
-  Future<void> speak(String text, {String langCode = 'en'}) async {
+  Future<void> speak(
+    String text, {
+    String langCode = 'en',
+    bool force = false,
+  }) async {
+    if (!isVoiceFeedbackEnabled && !force) return;
     if (text.trim().isEmpty) return;
 
     if (isPlaying && _lastSpokenText == text) {

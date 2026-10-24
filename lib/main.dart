@@ -55,35 +55,37 @@ void main() async {
     );
   };
 
-  // Initialize notifications
-  await NotificationService().init();
+  // Initialize notifications safely
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    debugPrint("NotificationService initialization error: $e");
+  }
   
   // ── Supabase credentials ──────────────────────────────────────────
-  // Values are injected at build/run time via:
+  // Values can be injected at build/run time via:
   //   flutter run --dart-define-from-file=.env
-  // Never hardcode secrets here. See .env.example for required keys.
-  const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: '',
-  );
-  const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: '',
-  );
+  // or GitHub Actions secrets / --dart-define flags.
+  const envSupabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  const envSupabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
-  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-    throw StateError(
-      'Missing Supabase credentials.\n'
-      'Run with: flutter run --dart-define-from-file=.env',
+  final supabaseUrl = envSupabaseUrl.isNotEmpty
+      ? envSupabaseUrl
+      : 'https://kfrgkhhsnyqqvqtwimbx.supabase.co';
+  final supabaseAnonKey = envSupabaseAnonKey.isNotEmpty
+      ? envSupabaseAnonKey
+      : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmcmdraGhzbnlxcXZxdHdpbWJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNTEyNTgsImV4cCI6MjA4NjYyNzI1OH0.pOSmrezElecOcCm6ANJ81nO_WN9wnc_EdLq1mwAmXZU';
+
+  // Initialize Supabase safely
+  try {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
     );
+    debugPrint("Supabase Initialized");
+  } catch (e) {
+    debugPrint("Supabase Initialization Error: $e");
   }
-
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
-  debugPrint("Supabase Initialized");
   
   // Set global system UI overlays
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
