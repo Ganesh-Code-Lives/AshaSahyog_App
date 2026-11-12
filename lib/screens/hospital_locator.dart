@@ -42,6 +42,7 @@ class Hospital {
 class _HospitalLocatorState extends State<HospitalLocator>
     with TickerProviderStateMixin {
   LatLng? _currentPosition;
+  Position? _lastPosition;
   bool _isLoading = true;
   String? _errorMessage;
   List<Hospital> _hospitals = [];
@@ -50,6 +51,7 @@ class _HospitalLocatorState extends State<HospitalLocator>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   String _filterType = 'hospital'; // 'all', 'hospital', 'clinic', or 'center'
+  int _activeFetchId = 0;
 
   @override
   void initState() {
@@ -110,9 +112,10 @@ class _HospitalLocatorState extends State<HospitalLocator>
       if (!mounted) return;
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
+        _lastPosition = position;
       });
 
-      await _fetchHospitals(position);
+      await _fetchHospitals(position, category: _filterType);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -122,38 +125,65 @@ class _HospitalLocatorState extends State<HospitalLocator>
     }
   }
 
-  Future<void> _fetchHospitals(Position pos) async {
+  String _buildOverpassQuery(Position pos, String category) {
+    const hospitalFilters = [
+      'node["amenity"="hospital"]',
+      'way["amenity"="hospital"]',
+      'node["healthcare"="hospital"]',
+      'way["healthcare"="hospital"]',
+    ];
+    const clinicFilters = [
+      'node["amenity"="clinic"]',
+      'way["amenity"="clinic"]',
+      'node["amenity"="doctors"]',
+      'way["amenity"="doctors"]',
+      'node["healthcare"="clinic"]',
+      'way["healthcare"="clinic"]',
+      'node["healthcare"="doctor"]',
+      'way["healthcare"="doctor"]',
+    ];
+    const centerFilters = [
+      'node["healthcare"="rehabilitation"]',
+      'way["healthcare"="rehabilitation"]',
+      'node["amenity"="rehabilitation"]',
+      'way["amenity"="rehabilitation"]',
+      'node["social_facility:for"="disabled"]',
+      'way["social_facility:for"="disabled"]',
+    ];
+
+    final filters = switch (category) {
+      'hospital' => hospitalFilters,
+      'clinic' => clinicFilters,
+      'center' => centerFilters,
+      _ => [...hospitalFilters, ...clinicFilters, ...centerFilters],
+    };
+    final selectors = filters
+        .map((filter) =>
+            '$filter(around:5000, ${pos.latitude}, ${pos.longitude});')
+        .join('\n  ');
+
+    return '''
+[out:json][timeout:25];
+(
+  $selectors
+);
+out center;
+''';
+  }
+
+  Future<void> _fetchHospitals(
+    Position pos, {
+    required String category,
+  }) async {
+    final fetchId = ++_activeFetchId;
     // Try multiple Overpass API mirrors for reliability
     final List<String> overpassMirrors = [
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
       'https://lz4.overpass-api.de/api/interpreter',
-      'https://z.overpass-api.de/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
     ];
-
-    // Extended radius to 8km for better results in Mumbai
-    final String query = '''
-[out:json][timeout:20];
-(
-  node["amenity"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["amenity"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["amenity"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["amenity"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["amenity"="doctors"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["amenity"="doctors"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["healthcare"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["healthcare"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["healthcare"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["healthcare"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["healthcare"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["healthcare"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["amenity"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["amenity"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
-  node["social_facility:for"="disabled"](around:5000, ${pos.latitude}, ${pos.longitude});
-  way["social_facility:for"="disabled"](around:5000, ${pos.latitude}, ${pos.longitude});
-);
-out center;
-''';
+    final query = _buildOverpassQuery(pos, category);
 
     for (final mirror in overpassMirrors) {
       try {
@@ -162,12 +192,12 @@ out center;
             .post(
               uri,
               headers: {
-                'User-Agent': 'AshaSahyogApp/1.0',
+                'User-Agent': 'AshaSahyogApp/1.0 (https://ashasahyog.app)',
                 'Accept': 'application/json',
               },
               body: {'data': query},
             )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 18));
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -258,10 +288,18 @@ out center;
           fetchedHospitals.sort(
               (a, b) => a.distanceInMeters.compareTo(b.distanceInMeters));
 
-          if (!mounted) return;
+          if (!mounted || fetchId != _activeFetchId) return;
           setState(() {
-            _hospitals = fetchedHospitals;
+            if (category == 'all') {
+              _hospitals = fetchedHospitals;
+            } else {
+              _hospitals = [
+                ..._hospitals.where((hospital) => hospital.type != category),
+                ...fetchedHospitals,
+              ];
+            }
             _isLoading = false;
+            _errorMessage = null;
           });
           return; // Success — exit loop
         }
@@ -272,11 +310,11 @@ out center;
     }
 
     // All mirrors failed
-    if (!mounted) return;
+    if (!mounted || fetchId != _activeFetchId) return;
     setState(() {
       _isLoading = false;
       _errorMessage =
-          "Nearby facilities are temporarily unavailable. Please try again shortly.";
+          'Open map data is temporarily unavailable. Retry or search in Google Maps.';
     });
   }
 
@@ -303,6 +341,22 @@ out center;
         'center' => 'Disability centers',
         _ => 'Care near you',
       };
+
+  void _selectFilter(String category) {
+    if (_filterType == category && _errorMessage == null) return;
+    final position = _lastPosition;
+    setState(() {
+      _filterType = category;
+      _selectedHospital = null;
+      _errorMessage = null;
+      _isLoading = position != null;
+    });
+    if (position != null) {
+      _fetchHospitals(position, category: category);
+    } else {
+      _initLocationAndFetchHospitals();
+    }
+  }
 
   void _centerOnUser() {
     if (_currentPosition != null) {
@@ -339,6 +393,22 @@ out center;
     }
   }
 
+  Future<void> _openCurrentCategoryInGoogleMaps() async {
+    final position = _currentPosition;
+    if (position == null) return;
+    final searchTerm = switch (_filterType) {
+      'clinic' => 'clinics and doctors',
+      'center' => 'disability rehabilitation centers',
+      _ => 'hospitals',
+    };
+    final query = Uri.encodeComponent(
+        '$searchTerm near ${position.latitude},${position.longitude}');
+    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const cartoApiKey = String.fromEnvironment('CARTO_API_KEY');
@@ -355,7 +425,7 @@ out center;
             children: [
               // ── MAP SECTION (Top ~42%) ──────────────────────────────────
               Expanded(
-                flex: 42,
+                flex: _errorMessage == null ? 42 : 32,
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius:
@@ -632,7 +702,7 @@ out center;
 
               // ── LIST SECTION (Bottom ~58%) ─────────────────────────────
               Expanded(
-                flex: 58,
+                flex: _errorMessage == null ? 58 : 68,
                 child: Container(
                   color: const Color(0xFFF8F6FC),
                   child: Column(
@@ -677,37 +747,25 @@ out center;
                               _FilterChip(
                                 label: 'All',
                                 isSelected: _filterType == 'all',
-                                onTap: () => setState(() {
-                                  _filterType = 'all';
-                                  _selectedHospital = null;
-                                }),
+                                onTap: () => _selectFilter('all'),
                               ),
                               const SizedBox(width: 8),
                               _FilterChip(
                                 label: 'Hospitals',
                                 isSelected: _filterType == 'hospital',
-                                onTap: () => setState(() {
-                                  _filterType = 'hospital';
-                                  _selectedHospital = null;
-                                }),
+                                onTap: () => _selectFilter('hospital'),
                               ),
                               const SizedBox(width: 8),
                               _FilterChip(
                                 label: 'Clinics',
                                 isSelected: _filterType == 'clinic',
-                                onTap: () => setState(() {
-                                  _filterType = 'clinic';
-                                  _selectedHospital = null;
-                                }),
+                                onTap: () => _selectFilter('clinic'),
                               ),
                               const SizedBox(width: 8),
                               _FilterChip(
                                 label: 'Disability centers',
                                 isSelected: _filterType == 'center',
-                                onTap: () => setState(() {
-                                  _filterType = 'center';
-                                  _selectedHospital = null;
-                                }),
+                                onTap: () => _selectFilter('center'),
                               ),
                               ],
                             ),
@@ -736,6 +794,9 @@ out center;
                                 ? _ErrorView(
                                     message: _errorMessage!,
                                     onRetry: _initLocationAndFetchHospitals,
+                                    onOpenMaps: _currentPosition == null
+                                        ? null
+                                        : _openCurrentCategoryInGoogleMaps,
                                   )
                                 : _filteredHospitals.isEmpty
                                     ? Center(
@@ -1027,27 +1088,32 @@ class _FilterChip extends StatelessWidget {
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
-  const _ErrorView({required this.message, required this.onRetry});
+  final VoidCallback? onOpenMaps;
+  const _ErrorView({
+    required this.message,
+    required this.onRetry,
+    this.onOpenMaps,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.wifi_off_rounded,
-                  color: Colors.red, size: 32),
+              child: const Icon(Icons.cloud_off_rounded,
+                  color: Colors.red, size: 28),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -1056,7 +1122,7 @@ class _ErrorView extends StatelessWidget {
                   fontSize: 14,
                   height: 1.5),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -1066,11 +1132,20 @@ class _ErrorView extends StatelessWidget {
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
             ),
+            if (onOpenMaps != null) ...[
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: onOpenMaps,
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('Search on Google Maps'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+              ),
+            ],
           ],
         ),
       ),
