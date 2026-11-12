@@ -205,6 +205,8 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textMain,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Row(
@@ -218,11 +220,15 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          "Your AshaSahyog Assistant",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                        const Flexible(
+                          child: Text(
+                            "Your AshaSahyog Assistant",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -230,28 +236,33 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
                   ],
                 ),
               ),
-              
-              // Voice Output Toggle Button
-              const TtsButton(compact: true),
-              const SizedBox(width: 4),
 
               // AI Settings Button
               IconButton(
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(),
                 icon: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 20),
                 tooltip: "Gemini AI Settings",
                 onPressed: () => _showApiKeyDialog(context),
               ),
+              const SizedBox(width: 6),
 
               // Restart Conversation Button
               IconButton(
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(),
                 icon: const Icon(Icons.refresh_rounded, color: AppTheme.textSecondary, size: 20),
                 tooltip: "Restart Chat",
                 onPressed: () => _handleRestart(context),
               ),
+              const SizedBox(width: 4),
 
               // Close Button
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 22),
+                tooltip: "Close",
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -398,57 +409,49 @@ class _AshaAssistantSheetState extends State<AshaAssistantSheet> {
   Widget _buildComposer() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).viewInsets.bottom + 12),
       child: Row(
         children: [
-          // Mic Button
-          GestureDetector(
-            onTap: () {
-              // TODO: Implement Speech-to-Text when available
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Voice input coming soon!')),
-              );
-            },
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppTheme.purpleLight,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: const Icon(Icons.mic_rounded, color: AppTheme.primary),
-            ),
-          ),
-          const SizedBox(width: 12),
+          // Voice Output Toggle (Speech Output ON/OFF)
+          const TtsButton(compact: true),
+          const SizedBox(width: 10),
           
-          // Text Field
+          // Text Field with integrated Mic button
           Expanded(
             child: TextField(
               controller: _textController,
               decoration: InputDecoration(
                 hintText: "Type your message...",
-                hintStyle: const TextStyle(color: Colors.grey),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
                 fillColor: AppTheme.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.mic_rounded, color: AppTheme.primary, size: 22),
+                  tooltip: "Voice input",
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Voice input coming soon!')),
+                    );
+                  },
+                ),
               ),
               textInputAction: TextInputAction.send,
               onSubmitted: _handleSend,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           
           // Send Button
           GestureDetector(
             onTap: () => _handleSend(_textController.text),
             child: Container(
-              width: 48,
-              height: 48,
+              width: 44,
+              height: 44,
               decoration: const BoxDecoration(
                 gradient: AppTheme.primaryGradient,
                 shape: BoxShape.circle,
