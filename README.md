@@ -87,16 +87,20 @@ lib/
 
 ## 🔐 Environment Setup & Security
 
-Secrets (Supabase API URL & Anon Key) are **never hardcoded** in version control. They are injected securely at compile time using Flutter's `--dart-define-from-file`.
+Supabase credentials and the CARTO Basemaps key are kept out of version control and injected at compile time using Flutter's `--dart-define-from-file`. A key included in a client app can be extracted, so restrict the CARTO key to your app or website in the CARTO dashboard.
 
 ### 1. Create Local Secret File
 Copy `.env.example` to `.env`:
 ```json
 {
   "SUPABASE_URL": "https://your-project.supabase.co",
-  "SUPABASE_ANON_KEY": "your-supabase-anon-key"
+  "SUPABASE_ANON_KEY": "your-supabase-anon-key",
+  "GEMINI_API_KEY": "your-gemini-api-key",
+  "CARTO_API_KEY": "your-carto-basemaps-api-key"
 }
 ```
+
+The CARTO key is required to load the locator's CARTO map tiles. Get one from [CARTO Basemaps](https://www.carto.com/basemaps/apikey/).
 
 ### 2. VS Code Launch Configuration
 Press **F5** in VS Code to launch the app — [`.vscode/launch.json`](.vscode/launch.json) automatically passes `--dart-define-from-file=.env`.
