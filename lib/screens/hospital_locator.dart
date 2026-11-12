@@ -26,7 +26,7 @@ class Hospital {
   final double lon;
   final double distanceInMeters;
   final String address;
-  final String type; // 'hospital' or 'clinic'
+  final String type; // 'hospital', 'clinic', or 'center'
 
   Hospital({
     required this.id,
@@ -49,11 +49,15 @@ class _HospitalLocatorState extends State<HospitalLocator>
   final MapController _mapController = MapController();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  String _filterType = 'all'; // 'all', 'hospital', 'clinic'
+  String _filterType = 'hospital'; // 'all', 'hospital', 'clinic', or 'center'
 
   @override
   void initState() {
     super.initState();
+    const cartoApiKey = String.fromEnvironment('CARTO_API_KEY');
+    if (cartoApiKey.isEmpty) {
+      debugPrint('CARTO_API_KEY is missing; start Flutter with --dart-define-from-file=.env');
+    }
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -129,15 +133,26 @@ class _HospitalLocatorState extends State<HospitalLocator>
 
     // Extended radius to 8km for better results in Mumbai
     final String query = '''
-[out:json][timeout:30];
+[out:json][timeout:20];
 (
-  node["amenity"="hospital"](around:8000, ${pos.latitude}, ${pos.longitude});
-  way["amenity"="hospital"](around:8000, ${pos.latitude}, ${pos.longitude});
-  node["amenity"="clinic"](around:8000, ${pos.latitude}, ${pos.longitude});
-  node["amenity"="doctors"](around:8000, ${pos.latitude}, ${pos.longitude});
-  node["healthcare"="hospital"](around:8000, ${pos.latitude}, ${pos.longitude});
+  node["amenity"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["amenity"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["amenity"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["amenity"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["amenity"="doctors"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["amenity"="doctors"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["healthcare"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["healthcare"="hospital"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["healthcare"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["healthcare"="clinic"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["healthcare"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["healthcare"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["amenity"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["amenity"="rehabilitation"](around:5000, ${pos.latitude}, ${pos.longitude});
+  node["social_facility:for"="disabled"](around:5000, ${pos.latitude}, ${pos.longitude});
+  way["social_facility:for"="disabled"](around:5000, ${pos.latitude}, ${pos.longitude});
 );
-out center body;
+out center;
 ''';
 
     for (final mirror in overpassMirrors) {
@@ -167,7 +182,8 @@ out center body;
             if (el['type'] == 'node') {
               lat = (el['lat'] as num).toDouble();
               lon = (el['lon'] as num).toDouble();
-            } else if (el['type'] == 'way' && el['center'] != null) {
+            } else if ((el['type'] == 'way' || el['type'] == 'relation') &&
+                el['center'] != null) {
               lat = (el['center']['lat'] as num).toDouble();
               lon = (el['center']['lon'] as num).toDouble();
             }
@@ -178,7 +194,11 @@ out center body;
             final name = tags['name'] ??
                 tags['name:en'] ??
                 tags['operator'] ??
-                'Unknown Facility';
+                (tags['healthcare'] == 'rehabilitation' ||
+                        tags['amenity'] == 'rehabilitation' ||
+                        tags['social_facility:for'] == 'disabled'
+                    ? 'Disability support center'
+                    : 'Unknown Facility');
 
             // Build a better address from available tags
             final List<String> addrParts = [];
@@ -193,9 +213,23 @@ out center body;
                 ? addrParts.join(', ')
                 : (tags['description'] ?? 'Address not available');
 
-            final amenity = tags['amenity'] ?? tags['healthcare'] ?? 'hospital';
-            final String type =
-                (amenity == 'clinic' || amenity == 'doctors') ? 'clinic' : 'hospital';
+            final amenity = tags['amenity'] ?? '';
+            final healthcare = tags['healthcare'] ?? '';
+            final facilityFor = tags['social_facility:for'] ?? '';
+            final nameForClassification = name.toLowerCase();
+            final bool isCenter = healthcare == 'rehabilitation' ||
+                amenity == 'rehabilitation' ||
+                facilityFor == 'disabled' ||
+                nameForClassification.contains('disabil') ||
+                nameForClassification.contains('divyang') ||
+                nameForClassification.contains('rehab') ||
+                nameForClassification.contains('special needs');
+            final String type = isCenter
+                ? 'center'
+                : (amenity == 'clinic' || amenity == 'doctors' ||
+                        healthcare == 'doctor' || healthcare == 'clinic'
+                    ? 'clinic'
+                    : 'hospital');
 
             double distance = Geolocator.distanceBetween(
                 pos.latitude, pos.longitude, lat, lon);
@@ -242,7 +276,7 @@ out center body;
     setState(() {
       _isLoading = false;
       _errorMessage =
-          "Unable to load hospitals. Check your internet connection and try again.";
+          "Nearby facilities are temporarily unavailable. Please try again shortly.";
     });
   }
 
@@ -250,6 +284,25 @@ out center body;
     if (_filterType == 'all') return _hospitals;
     return _hospitals.where((h) => h.type == _filterType).toList();
   }
+
+  IconData _facilityIcon(String type) => switch (type) {
+        'clinic' => Icons.medical_services_rounded,
+        'center' => Icons.accessible_rounded,
+        _ => Icons.local_hospital_rounded,
+      };
+
+  Color _facilityColor(String type) => switch (type) {
+        'clinic' => AppTheme.concession,
+        'center' => AppTheme.success,
+        _ => AppTheme.primary,
+      };
+
+  String get _facilityLabel => switch (_filterType) {
+        'hospital' => 'Hospitals',
+        'clinic' => 'Clinics',
+        'center' => 'Disability centers',
+        _ => 'Care near you',
+      };
 
   void _centerOnUser() {
     if (_currentPosition != null) {
@@ -288,6 +341,12 @@ out center body;
 
   @override
   Widget build(BuildContext context) {
+    const cartoApiKey = String.fromEnvironment('CARTO_API_KEY');
+    final cartoKeyQuery = cartoApiKey.isEmpty ? '' : '?key=$cartoApiKey';
+    final tileUrl = cartoApiKey.isNotEmpty
+        ? 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png$cartoKeyQuery'
+        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FC),
       body: Stack(
@@ -319,14 +378,13 @@ out center body;
                           mapController: _mapController,
                           options: MapOptions(
                             initialCenter: _currentPosition!,
-                            initialZoom: 14.0,
+                            initialZoom: 12.5,
                             onTap: (_, _) =>
                                 setState(() => _selectedHospital = null),
                           ),
                           children: [
                             TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              urlTemplate: tileUrl,
                               userAgentPackageName: 'com.ashasahyog.app',
                             ),
                             MarkerLayer(
@@ -352,29 +410,27 @@ out center body;
                                                 decoration: BoxDecoration(
                                                   color: _selectedHospital?.id ==
                                                           h.id
-                                                      ? AppTheme.primary
+                                                      ? _facilityColor(h.type)
                                                       : Colors.white,
                                                   shape: BoxShape.circle,
                                                   border: Border.all(
-                                                    color: AppTheme.primary,
+                                                    color: _facilityColor(h.type),
                                                     width: 2.5,
                                                   ),
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: AppTheme.primary
+                                                      color: _facilityColor(h.type)
                                                           .withValues(alpha: 0.3),
                                                       blurRadius: 8,
                                                     )
                                                   ],
                                                 ),
                                                 child: Icon(
-                                                  h.type == 'clinic'
-                                                      ? Icons.medical_services_rounded
-                                                      : Icons.local_hospital_rounded,
+                                                  _facilityIcon(h.type),
                                                   color: _selectedHospital?.id ==
                                                           h.id
                                                       ? Colors.white
-                                                      : AppTheme.primary,
+                                                      : _facilityColor(h.type),
                                                   size: 16,
                                                 ),
                                               ),
@@ -384,9 +440,9 @@ out center body;
                                                 painter: _TrianglePainter(
                                                   color: _selectedHospital?.id ==
                                                           h.id
-                                                      ? AppTheme.primary
+                                                      ? _facilityColor(h.type)
                                                       : Colors.white,
-                                                  stroke: AppTheme.primary,
+                                                  stroke: _facilityColor(h.type),
                                                 ),
                                               ),
                                             ],
@@ -503,7 +559,7 @@ out center body;
                                             color: AppTheme.primary, size: 14),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${_filteredHospitals.length} Nearby',
+                                          '${_filteredHospitals.length} nearby',
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.bold,
@@ -531,6 +587,27 @@ out center body;
                                 onTap: _centerOnUser,
                               ),
                             ],
+                          ),
+                        ),
+
+                      if (_currentPosition != null)
+                        Positioned(
+                          left: 12,
+                          top: 64,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '© OpenStreetMap contributors, © CARTO',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
                           ),
                         ),
 
@@ -566,8 +643,8 @@ out center body;
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                         child: Row(
                           children: [
-                            const Text(
-                              'Nearby Hospitals',
+                            Text(
+                              _facilityLabel,
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -589,37 +666,53 @@ out center body;
                       ),
 
                       // Filter chips
-                      if (!_isLoading && _hospitals.isNotEmpty)
+                      if (_errorMessage == null)
                         Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 10),
-                          child: Row(
-                            children: [
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
                               _FilterChip(
                                 label: 'All',
                                 isSelected: _filterType == 'all',
-                                onTap: () =>
-                                    setState(() => _filterType = 'all'),
+                                onTap: () => setState(() {
+                                  _filterType = 'all';
+                                  _selectedHospital = null;
+                                }),
                               ),
                               const SizedBox(width: 8),
                               _FilterChip(
-                                label: '🏥 Hospitals',
+                                label: 'Hospitals',
                                 isSelected: _filterType == 'hospital',
-                                onTap: () =>
-                                    setState(() => _filterType = 'hospital'),
+                                onTap: () => setState(() {
+                                  _filterType = 'hospital';
+                                  _selectedHospital = null;
+                                }),
                               ),
                               const SizedBox(width: 8),
                               _FilterChip(
-                                label: '💊 Clinics',
+                                label: 'Clinics',
                                 isSelected: _filterType == 'clinic',
-                                onTap: () =>
-                                    setState(() => _filterType = 'clinic'),
+                                onTap: () => setState(() {
+                                  _filterType = 'clinic';
+                                  _selectedHospital = null;
+                                }),
                               ),
-                            ],
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: 'Disability centers',
+                                isSelected: _filterType == 'center',
+                                onTap: () => setState(() {
+                                  _filterType = 'center';
+                                  _selectedHospital = null;
+                                }),
+                              ),
+                              ],
+                            ),
                           ),
-                        )
-                      else
-                        const SizedBox(height: 12),
+                        ),
 
                       // List body
                       Expanded(
@@ -632,7 +725,7 @@ out center body;
                                         color: AppTheme.primary),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'Finding hospitals near you...',
+                                      'Finding care near you...',
                                       style: TextStyle(
                                           color: Colors.grey.shade600),
                                     ),
@@ -819,8 +912,19 @@ class _MapInfoCard extends StatelessWidget {
               color: const Color(0xFFF3E8FF),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.local_hospital_rounded,
-                color: AppTheme.primary, size: 22),
+            child: Icon(
+              hospital.type == 'center'
+                  ? Icons.accessible_rounded
+                  : hospital.type == 'clinic'
+                      ? Icons.medical_services_rounded
+                      : Icons.local_hospital_rounded,
+              color: hospital.type == 'center'
+                  ? AppTheme.success
+                  : hospital.type == 'clinic'
+                      ? AppTheme.concession
+                      : AppTheme.primary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1032,16 +1136,22 @@ class _HospitalCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: hospital.type == 'clinic'
                           ? const Color(0xFFE0F2FE)
-                          : const Color(0xFFF3E8FF),
+                          : hospital.type == 'center'
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFF3E8FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       hospital.type == 'clinic'
                           ? Icons.medical_services_rounded
-                          : Icons.local_hospital_rounded,
+                          : hospital.type == 'center'
+                              ? Icons.accessible_rounded
+                              : Icons.local_hospital_rounded,
                       color: hospital.type == 'clinic'
                           ? const Color(0xFF0284C7)
-                          : AppTheme.primary,
+                          : hospital.type == 'center'
+                              ? AppTheme.success
+                              : AppTheme.primary,
                       size: 22,
                     ),
                   ),
@@ -1059,6 +1169,21 @@ class _HospitalCard extends StatelessWidget {
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          hospital.type == 'center'
+                              ? 'Disability support'
+                              : hospital.type == 'clinic'
+                                  ? 'Clinic'
+                                  : 'Hospital',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: hospital.type == 'center'
+                                ? AppTheme.success
+                                : AppTheme.textSecondary,
+                          ),
                         ),
                         if (hospital.address != 'Address not available') ...[
                           const SizedBox(height: 3),
