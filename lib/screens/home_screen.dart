@@ -33,12 +33,12 @@ import '../components/tts_button.dart';
 const _purple      = Color(0xFF7C3AED);
 const _purpleLight = Color(0xFFEDE9FE);
 const _purpleMid   = Color(0xFFA855F7);
-const _green       = Color(0xFF15803D);
+const _green       = Color(0xFF10B981);
 const _greenLight  = Color(0xFFDCFCE7);
-const _blue        = Color(0xFF1D4ED8);
-const _blueLight   = Color(0xFFDBEAFE);
-const _pink        = Color(0xFFBE185D);
-const _pinkLight   = Color(0xFFFDF2FA);
+const _blue        = Color(0xFF0EA5E9);
+const _blueLight   = Color(0xFFE0F2FE);
+const _pink        = Color(0xFFEC4899);
+const _pinkLight   = Color(0xFFFCE7F3);
 const _amber       = Color(0xFFB45309);
 const _amberLight  = Color(0xFFFEF9C3);
 const _red         = Color(0xFFDC2626);
@@ -455,25 +455,25 @@ class _HomeScreenState extends State<HomeScreen> {
     final actions = [
       _ActionData(
         AppStrings.t(context, 'action_find_schemes', 'Find Schemes'),
-        AppStrings.t(context, 'action_find_schemes_desc', 'Browse govt. schemes'),
-        Icons.description_rounded,
+        AppStrings.t(context, 'action_find_schemes_desc', 'Browse govt.\nschemes'),
+        Icons.article_rounded,
         _purpleLight, _purple, 'schemes',
       ),
       _ActionData(
-        AppStrings.t(context, 'action_hospitals', 'Nearby Hospitals'),
-        AppStrings.t(context, 'action_hospitals_desc', 'Locate care near you'),
+        AppStrings.t(context, 'action_hospitals', 'Nearby Locate'),
+        AppStrings.t(context, 'action_hospitals_desc', 'Locate care\nnear you'),
         Icons.local_hospital_rounded,
         _greenLight, _green, 'hospitals',
       ),
       _ActionData(
         AppStrings.t(context, 'action_documents', 'My Documents'),
-        AppStrings.t(context, 'action_documents_desc', 'Manage your files'),
+        AppStrings.t(context, 'action_documents_desc', 'Manage your\nfiles'),
         Icons.folder_rounded,
         _blueLight, _blue, 'documents',
       ),
       _ActionData(
         AppStrings.t(context, 'action_reminders', 'My Reminders'),
-        AppStrings.t(context, 'action_reminders_desc', 'Stay on schedule'),
+        AppStrings.t(context, 'action_reminders_desc', 'Stay on\nschedule'),
         Icons.notifications_rounded,
         _pinkLight, _pink, 'reminders',
       ),
@@ -496,14 +496,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Single action card — fixed height, no overflow ──
+  // ── Single action card — refined soft UI aesthetic ──
   Widget _actionCard(_ActionData a) {
-    String leafAsset;
+    String bgAsset;
     if (a.screen == 'schemes') {
-      leafAsset = 'leaf_purple.png';
-    } else if (a.screen == 'hospitals') leafAsset = 'leaf_green.png';
-    else if (a.screen == 'documents') leafAsset = 'leaf_blue.png';
-    else leafAsset = 'leaf_pink.png';
+      bgAsset = 'assets/images/panel_schemes.png';
+    } else if (a.screen == 'hospitals') {
+      bgAsset = 'assets/images/panel_hospitals.png';
+    } else if (a.screen == 'documents') {
+      bgAsset = 'assets/images/panel_documents.png';
+    } else {
+      bgAsset = 'assets/images/panel_reminders.png';
+    }
+
+    Widget iconWidget;
+    if (a.screen == 'hospitals') {
+      iconWidget = Container(
+        width: 22,
+        height: 22,
+        decoration: BoxDecoration(
+          color: a.iconColor,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 17),
+      );
+    } else if (a.screen == 'documents') {
+      iconWidget = Icon(Icons.folder_rounded, color: a.iconColor, size: 22);
+    } else if (a.screen == 'reminders') {
+      iconWidget = Icon(Icons.notifications_rounded, color: a.iconColor, size: 22);
+    } else {
+      iconWidget = Icon(Icons.article_rounded, color: a.iconColor, size: 22);
+    }
 
     return GestureDetector(
       onTap: () {
@@ -516,87 +539,129 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         _navigate(a.screen);
       },
-      child: Container(
-        height: 126,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _cardBorder, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: a.iconColor.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            // Background Leaf Illustration
-            Positioned(
-              right: -5,
-              bottom: -5,
-              child: Opacity(
-                opacity: 0.65,
-                child: Image.asset(
-                  'assets/images/$leafAsset',
-                  width: 90,
-                  height: 90,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            // Foreground Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 42, height: 42,
-                        decoration: BoxDecoration(
-                          color: a.bgColor,
-                          borderRadius: BorderRadius.circular(12)),
-                        child: Icon(a.icon, color: a.iconColor, size: 22)),
-                      Container(
-                        width: 24, height: 24,
-                        decoration: BoxDecoration(
-                          color: a.bgColor.withOpacity(0.5),
-                          shape: BoxShape.circle),
-                        child: Icon(Icons.arrow_forward_ios_rounded,
-                            size: 10, color: a.iconColor)),
-                    ],
+      child: AspectRatio(
+        aspectRatio: 1.04,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cardHeight = constraints.maxHeight;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: a.iconColor.withValues(alpha: 0.20), width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(a.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: _textMain,
-                          fontSize: 14,
-                          height: 1.2),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 2),
-                      Text(a.subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: _textSub,
-                          height: 1.3),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    ],
+                  BoxShadow(
+                    color: a.iconColor.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-            ),
-          ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Stack(
+                  fit: StackFit.expand,
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    // Independent decorative illustration constrained to bottom-right
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: SizedBox(
+                        height: cardHeight * 0.44,
+                        child: Image.asset(
+                          bgAsset,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+
+                    // Foreground Content with clear top-to-bottom hierarchy starting from icon
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: a.iconColor.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: Center(child: iconWidget),
+                              ),
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: a.iconColor.withValues(alpha: 0.09),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 16,
+                                    color: a.iconColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Title directly below icon row
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              a.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                                fontSize: 15,
+                                letterSpacing: -0.2,
+                                height: 1.15,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          // Subtitle directly below title
+                          Text(
+                            a.subtitle,
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF64748B),
+                              height: 1.25,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

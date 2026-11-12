@@ -459,14 +459,14 @@ class AppStrings {
       'mr': 'सरकारी योजना पहा',
     },
     'action_hospitals': {
-      'en': 'Nearby Hospitals',
+      'en': 'Nearby Locate',
       'hi': 'निकटतम अस्पताल',
       'mr': 'जवळचे रुग्णालय',
     },
     'action_hospitals_desc': {
-      'en': 'Locate care near you',
-      'hi': 'अपने पास देखभाल खोजें',
-      'mr': 'आपल्या जवळची काळजी शोधा',
+      'en': 'Locate care\nnear you',
+      'hi': 'अपने पास\nदेखभाल खोजें',
+      'mr': 'आपल्या जवळची\nकाळजी शोधा',
     },
     'action_documents': {
       'en': 'My Documents',
@@ -474,9 +474,9 @@ class AppStrings {
       'mr': 'माझी कागदपत्रे',
     },
     'action_documents_desc': {
-      'en': 'Manage your files',
-      'hi': 'अपनी फ़ाइलें प्रबंधित करें',
-      'mr': 'तुमच्या फाईल्स व्यवस्थापित करा',
+      'en': 'Manage your\nfiles',
+      'hi': 'अपनी फ़ाइलें\nप्रबंधित करें',
+      'mr': 'तुमच्या फाईल्स\nव्यवस्थापित करा',
     },
     'action_reminders': {
       'en': 'My Reminders',
@@ -484,9 +484,9 @@ class AppStrings {
       'mr': 'माझी स्मरणपत्रे',
     },
     'action_reminders_desc': {
-      'en': 'Stay on schedule',
-      'hi': 'समय पर रहें',
-      'mr': 'वेळेवर रहा',
+      'en': 'Stay on\nschedule',
+      'hi': 'समय पर\nरहें',
+      'mr': 'वेळेवर\nरहा',
     },
 
 
