@@ -534,38 +534,222 @@ class _SchemesFinderState extends State<SchemesFinder> {
   }
 
   // ── Error state ───────────────────────────────
+  bool get _isOfflineError {
+    final e = (_error ?? '').toLowerCase();
+    return e.contains('socketexception') ||
+        e.contains('clientexception') ||
+        e.contains('failed host lookup') ||
+        e.contains('connection abort') ||
+        e.contains('network is unreachable') ||
+        e.contains('connection refused') ||
+        e.contains('connection reset') ||
+        e.contains('no address associated') ||
+        e.contains('software caused connection') ||
+        e.contains('errno = 101') ||
+        e.contains('errno = 111');
+  }
+
   Widget _buildError() {
+    final offline = _isOfflineError;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, color: _textSub, size: 48),
-            const SizedBox(height: 16),
-            Text(AppStrings.t(context, 'error_loading_schemes', 'Could not load schemes'),
-                style: const TextStyle(fontSize: 16,
-                    fontWeight: FontWeight.w600, color: _textMain)),
-            const SizedBox(height: 8),
-            Text(_error ?? 'Unknown error',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: _textSub)),
-            const SizedBox(height: 24),
-            GestureDetector(
-              onTap: _loadSchemes,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_purple, _purpleMid]),
-                  borderRadius: BorderRadius.circular(12),
+            // ── Illustrated icon bubble ──────────────
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    offline
+                        ? const Color(0xFFEDE9FE)
+                        : const Color(0xFFFEE2E2),
+                    offline
+                        ? const Color(0xFFF5F3FF)
+                        : const Color(0xFFFFF1F2),
+                  ],
+                  radius: 0.85,
                 ),
-                child: Text(AppStrings.t(context, 'try_again', 'Try again'),
-                    style: const TextStyle(color: Colors.white,
-                        fontWeight: FontWeight.w600)),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: offline
+                      ? const Color(0xFFDDD6FE)
+                      : const Color(0xFFFECACA),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (offline ? _purple : const Color(0xFFEF4444))
+                        .withAlpha(25),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // faint decorative ring
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: offline
+                            ? _purple.withAlpha(30)
+                            : const Color(0xFFEF4444).withAlpha(30),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  // main icon
+                  Icon(
+                    offline
+                        ? Icons.wifi_off_rounded
+                        : Icons.cloud_off_rounded,
+                    size: 48,
+                    color: offline ? _purple : const Color(0xFFEF4444),
+                  ),
+                  // small badge dot at top-right
+                  Positioned(
+                    top: 18,
+                    right: 18,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color:
+                            offline ? const Color(0xFFF59E0B) : const Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.priority_high_rounded,
+                          color: Colors.white, size: 10),
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 24),
+
+            // ── Title ──────────────────────────────────
+            Text(
+              offline
+                  ? 'You\'re offline'
+                  : AppStrings.t(context, 'error_loading_schemes',
+                      'Could not load schemes'),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: _textMain,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // ── Subtitle ───────────────────────────────
+            Text(
+              offline
+                  ? 'Connect to the internet to browse\ngovernment schemes for you.'
+                  : 'Something went wrong while loading\nschemes. Please try again.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: _textSub,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Pill hint ──────────────────────────────
+            if (offline) ...[
+              Container(
+                margin: const EdgeInsets.only(top: 4, bottom: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.signal_wifi_off_rounded,
+                        size: 13, color: _purple),
+                    SizedBox(width: 6),
+                    Text(
+                      'No internet connection',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _purple,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 28),
+
+            // ── Try Again button ───────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: _loadSchemes,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [_purple, _purpleMid],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _purple.withAlpha(60),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.refresh_rounded,
+                          color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppStrings.t(context, 'try_again', 'Try again'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── secondary hint ─────────────────────────
+            if (offline) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Turn on Wi-Fi or mobile data\nand tap Try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _textSub.withAlpha(160),
+                  height: 1.6,
+                ),
+              ),
+            ],
           ],
         ),
       ),
