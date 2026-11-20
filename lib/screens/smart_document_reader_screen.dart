@@ -219,7 +219,7 @@ class _SmartDocumentReaderScreenState extends State<SmartDocumentReaderScreen> {
       });
       return;
     }
-    final language = action == DocumentAiAction.translate ? _target : _voice;
+    final language = action == DocumentAiAction.question ? _voice : _target;
     setState(() {
       _busy = '';
       _error = null;
