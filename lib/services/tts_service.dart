@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +12,8 @@ class TTSService {
   late FlutterTts _flutterTts;
   TtsState _ttsState = TtsState.stopped;
   String? _lastSpokenText;
+  int _playbackVersion = 0;
+  bool _readingDocument = false;
   bool isVoiceFeedbackEnabled = true;
 
   TtsState get ttsState => _ttsState;
@@ -122,12 +125,10 @@ class TTSService {
     String text, {
     required String langCode,
   }) async {
-    String locale = 'en-IN';
-    if (langCode == 'hi') locale = 'hi-IN';
-    if (langCode == 'mr') locale = 'mr-IN';
+    final locale = _localeFor(langCode);
 
     try {
-      await _flutterTts.stop();
+      await stop();
       await _flutterTts.setLanguage(locale);
       await _flutterTts.setSpeechRate(0.65); // Uniform 0.65 speech rate throughout
       await _flutterTts.setVolume(1.0);
@@ -143,9 +144,116 @@ class TTSService {
     }
   }
 
+  String _localeFor(String langCode) => switch (langCode) {
+    'hi' => 'hi-IN',
+    'mr' => 'mr-IN',
+    _ => 'en-IN',
+  };
+
+  /// Returns false when a suitable voice is unavailable or playback fails.
+  Future<bool> readDocument(
+    String text, {
+    required String langCode,
+    required double rate,
+  }) async {
+    final version = _playbackVersion + 1;
+    await stop();
+    if (version != _playbackVersion) return true;
+    _readingDocument = true;
+    try {
+      final preferredLocale = _localeFor(langCode);
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        final voices = await _flutterTts.getVoices;
+        if (version != _playbackVersion) return true;
+        if (voices is! List) return false;
+        Map<Object?, Object?>? selected;
+        for (final voice in voices.whereType<Map<Object?, Object?>>()) {
+          final locale = voice['locale'];
+          final features = voice['features'] as String? ?? '';
+          if (voice['network_required'] != '0' ||
+              features.split('\t').contains('notInstalled') ||
+              locale is! String ||
+              locale.split('-').first != langCode ||
+              voice['name'] is! String) {
+            continue;
+          }
+          selected ??= voice;
+          if (locale == preferredLocale) {
+            selected = voice;
+            break;
+          }
+        }
+        if (selected == null) return false;
+        if (await _flutterTts.setVoice({
+              'name': selected['name'] as String,
+              'locale': selected['locale'] as String,
+            }) ==
+            0) {
+          return false;
+        }
+      } else {
+        if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return false;
+        var locale = preferredLocale;
+        var available = await _flutterTts.isLanguageAvailable(locale);
+        if (available != true && available != 1 && langCode == 'en') {
+          locale = 'en-US';
+          available = await _flutterTts.isLanguageAvailable(locale);
+        }
+        if (version != _playbackVersion) return true;
+        if (available != true && available != 1) return false;
+        if (await _flutterTts.setLanguage(locale) == 0) return false;
+      }
+      if (version != _playbackVersion) return true;
+      await _flutterTts.setSpeechRate(rate);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+      if (version != _playbackVersion) return true;
+      await _flutterTts.awaitSpeakCompletion(true);
+
+      for (final chunk in _documentSpeechChunks(text)) {
+        if (version != _playbackVersion) return true;
+        final result = await _flutterTts.speak(chunk);
+        if (result == 0 && version == _playbackVersion) return false;
+      }
+      return true;
+    } on PlatformException {
+      return version != _playbackVersion;
+    } on MissingPluginException {
+      return false;
+    } finally {
+      if (version == _playbackVersion) await stop();
+    }
+  }
+
+  Iterable<String> _documentSpeechChunks(String text) sync* {
+    const limit = 700;
+    var start = 0;
+    while (start < text.length) {
+      var end = start + limit;
+      if (end >= text.length) {
+        end = text.length;
+      } else {
+        final boundary = text.lastIndexOf(RegExp(r'\s'), end);
+        if (boundary > start) end = boundary + 1;
+        // Keep a UTF-16 surrogate pair intact even in text without spaces.
+        if (text.codeUnitAt(end - 1) >= 0xD800 &&
+            text.codeUnitAt(end - 1) <= 0xDBFF) {
+          end--;
+        }
+      }
+      final chunk = text.substring(start, end).trim();
+      if (chunk.isNotEmpty) yield chunk;
+      start = end;
+    }
+  }
+
   Future<void> stop() async {
+    _playbackVersion++;
+    final readingDocument = _readingDocument;
+    _readingDocument = false;
     try {
       await _flutterTts.stop();
+      if (readingDocument) await _flutterTts.awaitSpeakCompletion(false);
     } catch (_) {}
     _ttsState = TtsState.stopped;
     stateNotifier.value = TtsState.stopped;

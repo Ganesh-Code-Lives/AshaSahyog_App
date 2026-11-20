@@ -95,7 +95,6 @@ Copy `.env.example` to `.env`:
 {
   "SUPABASE_URL": "https://your-project.supabase.co",
   "SUPABASE_ANON_KEY": "your-supabase-anon-key",
-  "GEMINI_API_KEY": "your-gemini-api-key",
   "CARTO_API_KEY": "your-carto-basemaps-api-key"
 }
 ```
@@ -119,6 +118,39 @@ flutter run -d chrome --dart-define-from-file=.env
 
 # Run on Android Device / Emulator
 flutter run -d android --dart-define-from-file=.env
+```
+
+---
+
+## Smart Document Reader
+
+1. Open **Smart Document Reader** from the dashboard, or open a supported file’s menu in the **Document Vault** and choose **Read document**.
+2. On Android, choose **English / Latin** or **Hindi and Marathi / Devanagari**, then tap **Scan Document** or **Upload Document**. Try a JPG or PNG photo, a selectable-text PDF, and a scanned PDF. For a saved Vault file, select a different script and tap **Read Vault file again**.
+3. Inspect the original text and any unreadable-page numbers. Choose the reading voice and speed, then use **Play** and **Stop**. Android uses installed offline voices. Download missing voices in Android’s text-to-speech settings.
+4. With cloud AI configured, use **Simplify**, **Translate**, or **Ask question** and confirm the data-sharing dialog. Try a question whose answer appears in the document and another whose answer is absent. Use **Show original text** to switch back from a simplified or translated view.
+
+The reader accepts files up to 20 MB and PDFs up to 50 pages. AI supports up to 30,000 characters per request. Android supports local ML Kit OCR and camera capture. Other platforms offer selectable-text PDF extraction, and iOS can use available device TTS voices. The Reader opens files in a temporary session and sends extracted text to Gemini only after confirmation. It does not upload the original file.
+
+### Enable cloud AI
+
+Set a Gemini API key in your Supabase project’s Edge Function secrets. The default model is `gemini-2.5-flash-lite`. Set the optional `GEMINI_MODEL` secret to use another available model that supports structured output.
+
+```bash
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase secrets set GEMINI_API_KEY=YOUR_SERVER_SIDE_KEY
+supabase functions deploy document-reader
+supabase functions deploy asha-assistant
+```
+
+Both functions validate the caller’s Supabase user session before forwarding requests. Sign in to the app to test them. Keep Gemini keys out of Flutter’s `.env`, build flags, and client CI secrets. Rotate keys previously shipped in client builds. Asha Assistant’s offline answers remain available, and users can opt into cloud replies from **Cloud AI settings**. Use a Gemini project with data-handling terms appropriate for the documents your users may share.
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+deno test --allow-env supabase/functions/document-reader
+flutter build apk --debug
 ```
 
 ---

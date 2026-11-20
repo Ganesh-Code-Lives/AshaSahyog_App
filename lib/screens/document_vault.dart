@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/tts_service.dart';
+import '../services/document_extraction_service.dart';
+import 'smart_document_reader_screen.dart';
 import '../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -809,6 +811,46 @@ class _DocumentVaultState extends State<DocumentVault>
     }
   }
 
+  bool _canReadDocument(VaultDocument doc) =>
+      DocumentExtractionService.supportsExtension(doc.fileExtension) &&
+      (doc.isPdf || DocumentExtractionService().supportsImageOcr);
+
+  void _readDocument(VaultDocument doc) {
+    if (doc.fileSizeBytes > DocumentExtractionService.maxBytes) {
+      _showError('Choose a file under 20 MB.');
+      return;
+    }
+    try {
+      final XFile source;
+      if (doc.filePath.startsWith('data:')) {
+        // Decode existing web Vault entries locally.
+        if (doc.filePath.length > DocumentExtractionService.maxBytes * 1.4) {
+          _showError('Choose a file under 20 MB.');
+          return;
+        }
+        final data = UriData.parse(doc.filePath);
+        source = XFile.fromData(data.contentAsBytes(), name: doc.fileName);
+      } else if (!kIsWeb &&
+          !doc.filePath.startsWith('http') &&
+          File(doc.filePath).existsSync()) {
+        source = XFile(doc.filePath, name: doc.fileName);
+      } else {
+        _showError('This file is unavailable on this device. Import it again.');
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SmartDocumentReaderScreen(
+            initialFile: source,
+            initialExtension: doc.fileExtension,
+          ),
+        ),
+      );
+    } catch (_) {
+      _showError('Could not open this document in the reader.');
+    }
+  }
+
   // ── RENAME ─────────────────────────────────────────────────────────────────
 
   void _renameDocument(VaultDocument doc) {
@@ -1087,6 +1129,7 @@ class _DocumentVaultState extends State<DocumentVault>
         return _DocumentListCard(
           doc: docs[i],
           onOpen: () => _openDocument(docs[i]),
+          onRead: _canReadDocument(docs[i]) ? () => _readDocument(docs[i]) : null,
           onDelete: () => _confirmDelete(docs[i]),
           onRename: () => _renameDocument(docs[i]),
         );
@@ -1107,6 +1150,7 @@ class _DocumentVaultState extends State<DocumentVault>
       itemBuilder: (_, i) => _DocumentGridCard(
         doc: docs[i],
         onOpen: () => _openDocument(docs[i]),
+        onRead: _canReadDocument(docs[i]) ? () => _readDocument(docs[i]) : null,
         onDelete: () => _confirmDelete(docs[i]),
         onRename: () => _renameDocument(docs[i]),
       ),
@@ -1271,12 +1315,14 @@ Widget _buildDocImage(
 class _DocumentListCard extends StatelessWidget {
   final VaultDocument doc;
   final VoidCallback onOpen;
+  final VoidCallback? onRead;
   final VoidCallback onDelete;
   final VoidCallback onRename;
 
   const _DocumentListCard({
     required this.doc,
     required this.onOpen,
+    required this.onRead,
     required this.onDelete,
     required this.onRename,
   });
@@ -1361,10 +1407,13 @@ class _DocumentListCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12)),
               onSelected: (v) {
                 if (v == 'open') onOpen();
+                if (v == 'read') onRead?.call();
                 if (v == 'rename') onRename();
                 if (v == 'delete') onDelete();
               },
               itemBuilder: (_) => [
+                if (onRead != null)
+                  const PopupMenuItem(value: 'read', child: Text('Read document')),
                 const PopupMenuItem(
                     value: 'open',
                     child: Row(children: [
@@ -1413,12 +1462,14 @@ class _DocumentListCard extends StatelessWidget {
 class _DocumentGridCard extends StatelessWidget {
   final VaultDocument doc;
   final VoidCallback onOpen;
+  final VoidCallback? onRead;
   final VoidCallback onDelete;
   final VoidCallback onRename;
 
   const _DocumentGridCard({
     required this.doc,
     required this.onOpen,
+    required this.onRead,
     required this.onDelete,
     required this.onRename,
   });
@@ -1488,10 +1539,13 @@ class _DocumentGridCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12)),
                         onSelected: (v) {
                           if (v == 'open') onOpen();
+                          if (v == 'read') onRead?.call();
                           if (v == 'rename') onRename();
                           if (v == 'delete') onDelete();
                         },
                         itemBuilder: (_) => [
+                          if (onRead != null)
+                            const PopupMenuItem(value: 'read', child: Text('Read document')),
                           const PopupMenuItem(
                               value: 'open', child: Text('Open')),
                           const PopupMenuItem(

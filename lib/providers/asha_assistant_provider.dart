@@ -43,15 +43,16 @@ class AshaAssistantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> isAiConfigured() => _service.isAiConfigured();
-  Future<void> setCustomApiKey(String key) => _service.setCustomApiKey(key);
-  Future<void> clearCustomApiKey() => _service.clearCustomApiKey();
+  Future<bool> isCloudEnabled() => _service.isCloudEnabled();
+
+  Future<void> setCloudEnabled(bool enabled) =>
+      _service.setCloudEnabled(enabled);
 
   Future<void> _fetchResponse(String userText) async {
     try {
       final response = await _service.getResponse(
         userText,
-        conversationHistory: _messages,
+        conversationHistory: _messages.sublist(0, _messages.length - 1),
       );
       _isTyping = false;
       addAssistantMessage(response);
