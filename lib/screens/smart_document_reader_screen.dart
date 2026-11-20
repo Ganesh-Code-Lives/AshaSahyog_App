@@ -12,6 +12,12 @@ import '../services/document_extraction_service.dart';
 import '../services/tts_service.dart';
 import '../theme/app_theme.dart';
 
+// Accent pairs used by Help & Support and Scheme Finder.
+const _purple = (ink: AppTheme.primary, tint: Color(0xFFEDE9FE));
+const _pink = (ink: AppTheme.pinkDark, tint: Color(0xFFFCE7F3));
+const _blue = (ink: Color(0xFF1D4ED8), tint: Color(0xFFDBEAFE));
+const _green = (ink: Color(0xFF15803D), tint: Color(0xFFDCFCE7));
+
 const _languages = {'en': 'English', 'hi': 'Hindi', 'mr': 'Marathi'};
 
 class SmartDocumentReaderScreen extends StatefulWidget {
@@ -291,189 +297,330 @@ class _SmartDocumentReaderScreenState extends State<SmartDocumentReaderScreen> {
     }
   }
 
+  static final _buttonStyle = ButtonStyle(
+    minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    ),
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final busy = _busy;
+    final theme = Theme.of(context);
+    final busy = _busy != null;
     final document = _document;
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Document Reader')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_extractor.supportsImageOcr)
-            DropdownButtonFormField<DocumentScript>(
-              initialValue: _script,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'OCR script'),
-              items: [
-                for (final script in DocumentScript.values)
-                  DropdownMenuItem(value: script, child: Text(script.label)),
-              ],
-              onChanged: busy != null
-                  ? null
-                  : (script) => setState(() => _script = script!),
-            ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (_extractor.supportsImageOcr)
-                FilledButton.icon(
-                  onPressed: busy == null ? _scan : null,
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scan Document'),
-                ),
-              if (widget.initialFile != null && _extractor.supportsImageOcr)
-                OutlinedButton.icon(
-                  onPressed: busy == null
-                      ? () => _open(
-                          () async => widget.initialFile,
-                          extension: widget.initialExtension,
-                        )
-                      : null,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Read Vault file again'),
-                ),
-              OutlinedButton.icon(
-                onPressed: busy == null ? _upload : null,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload Document'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _extractor.supportsImageOcr
-                ? 'PDF, JPG or PNG. Extraction stays on this device.'
-                : 'Text-based PDF only. Image OCR is available on Android.',
-          ),
-          if (busy != null && busy.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const LinearProgressIndicator(),
-            Semantics(liveRegion: true, child: Text(busy)),
-          ],
-          if (_error case final error?) ...[
-            const SizedBox(height: 12),
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                error,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          ],
-          if (document != null) ...[
-            const SizedBox(height: 20),
-            Text(
-              _fileName ?? 'Document',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (document.unreadablePages.isNotEmpty)
-              Text('Unreadable pages: ${document.unreadablePages.join(', ')}'),
-            if (_canSpeak) _playbackControls(busy != null),
-            if (_derivedText != null)
-              TextButton.icon(
-                onPressed: busy != null || _playing
-                    ? null
-                    : () => setState(() => _showOriginal = !_showOriginal),
-                icon: const Icon(Icons.description_outlined),
-                label: Text(
-                  _showOriginal
-                      ? 'Show ${_derivedLabel!.toLowerCase()}'
-                      : 'Show original text',
-                ),
-              ),
-            ExpansionTile(
-              title: const Text('Document AI'),
-              subtitle: const Text('Simplify, translate, or ask a question'),
-              childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _aiControls(busy != null),
-                if (_answer case final answer?)
-                  _textCard('Answer from document', answer),
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Row(
+                    children: [
+                      if (Navigator.canPop(context)) ...[
+                        const BackButton(),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            'Smart Document Reader',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    children: [
+                      _importCard(busy),
+                      if (_busy case final message?
+                          when message.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _ReaderStatus(message: message),
+                      ],
+                      if (_error case final error?) ...[
+                        const SizedBox(height: 12),
+                        _ReaderStatus(message: error, isError: true),
+                      ],
+                      if (document != null) ...[
+                        const SizedBox(height: 12),
+                        _documentCard(document),
+                        if (_canSpeak) ...[
+                          const SizedBox(height: 12),
+                          _playbackControls(busy),
+                        ],
+                        const SizedBox(height: 12),
+                        _aiControls(busy),
+                        if (_answer case final answer?) ...[
+                          const SizedBox(height: 12),
+                          _textCard('Answer from document', answer, isAi: true),
+                        ],
+                        const SizedBox(height: 12),
+                        _textCard(
+                          _showOriginal
+                              ? 'Original extracted text'
+                              : _derivedLabel!,
+                          _visibleDerivedText ?? document.text,
+                          isAi: !_showOriginal,
+                          action: _derivedText == null
+                              ? null
+                              : TextButton(
+                                  style: _buttonStyle,
+                                  onPressed: busy || _playing
+                                      ? null
+                                      : () => setState(
+                                          () => _showOriginal = !_showOriginal,
+                                        ),
+                                  child: Text(
+                                    _showOriginal
+                                        ? 'Show ${_derivedLabel!.toLowerCase()}'
+                                        : 'Show original text',
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
-            _textCard(
-              _showOriginal ? 'Original extracted text' : _derivedLabel!,
-              _visibleDerivedText ?? document.text,
-            ),
-          ],
-        ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _importCard(bool busy) {
+    final canScan = _extractor.supportsImageOcr;
+    final upload = OutlinedButton(
+      style: _pastelButton(_blue),
+      onPressed: busy ? null : _upload,
+      child: _actionLabel(Icons.upload_file_outlined, 'Upload Document'),
+    );
+    return _ReaderCard(
+      title: 'Open a document',
+      icon: Icons.folder_open_outlined,
+      children: [
+        if (canScan) ...[
+          DropdownButtonFormField<DocumentScript>(
+            initialValue: _script,
+            isExpanded: true,
+            itemHeight: null,
+            decoration: _filterDecoration('OCR script'),
+            items: [
+              for (final script in DocumentScript.values)
+                DropdownMenuItem(value: script, child: Text(script.label)),
+            ],
+            onChanged: busy
+                ? null
+                : (script) => setState(() => _script = script!),
+          ),
+          const SizedBox(height: 12),
+          _actionPair(
+            FilledButton(
+              style: _pastelButton(_pink),
+              onPressed: busy ? null : _scan,
+              child: _actionLabel(
+                Icons.document_scanner_outlined,
+                'Scan Document',
+              ),
+            ),
+            upload,
+          ),
+        ] else
+          SizedBox(width: double.infinity, child: upload),
+        const SizedBox(height: 10),
+        Text(
+          canScan
+              ? 'PDF, JPG or PNG. Extraction stays on this device.'
+              : 'Text-based PDF only. Image OCR is available on Android.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (widget.initialFile != null && canScan) ...[
+          const SizedBox(height: 4),
+          TextButton(
+            style: _buttonStyle,
+            onPressed: busy
+                ? null
+                : () => _open(
+                    () async => widget.initialFile,
+                    extension: widget.initialExtension,
+                  ),
+            child: const Text('Read Vault file again'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _documentCard(ExtractedDocument document) {
+    final name = _fileName ?? 'Document';
+    return _ReaderCard(
+      title: 'Selected document',
+      icon: Icons.description_outlined,
+      iconColors: _blue,
+      children: [
+        Tooltip(
+          message: name,
+          excludeFromSemantics: true,
+          child: Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Semantics(
+          liveRegion: true,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _green.tint,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle_outline, color: _green.ink, size: 18),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Text extracted',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelLarge?.copyWith(color: _green.ink),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (document.unreadablePages.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text('Unreadable pages: ${document.unreadablePages.join(', ')}'),
+        ],
+      ],
     );
   }
 
   Widget _playbackControls(bool busy) {
     final editable = !busy && !_playing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final derivedLanguage = _visibleDerivedLanguage;
+    return _ReaderCard(
+      title: 'Listen to Document',
+      icon: Icons.headphones_outlined,
+      iconColors: _blue,
       children: [
-        if (_visibleDerivedLanguage == null)
+        if (derivedLanguage == null)
           _languagePicker(
             'Reading voice',
             _voice,
             editable ? (value) => setState(() => _voice = value!) : null,
-          ),
-        Text('Reading speed: ${_speed.toStringAsFixed(1)}'),
+          )
+        else
+          Text('Reading voice: ${_languages[derivedLanguage]}'),
+        const SizedBox(height: 12),
+        Text(
+          'Reading speed: ${_speed.toStringAsFixed(1)}',
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: _blue.ink),
+        ),
         Slider(
           value: _speed,
           min: 0.2,
           max: 0.8,
           divisions: 6,
           label: _speed.toStringAsFixed(1),
-          semanticFormatterCallback: (value) => value.toStringAsFixed(1),
+          semanticFormatterCallback: (value) =>
+              'Reading speed ${value.toStringAsFixed(1)}',
           onChanged: editable
               ? (value) => setState(() => _speed = value)
               : null,
         ),
-        Wrap(
-          spacing: 8,
-          children: [
-            FilledButton.icon(
-              onPressed: editable ? _play : null,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Play'),
-            ),
-            OutlinedButton.icon(
-              onPressed: _playing ? _stop : null,
-              icon: const Icon(Icons.stop),
-              label: const Text('Stop'),
-            ),
-          ],
+        _actionPair(
+          FilledButton(
+            style: _buttonStyle,
+            onPressed: editable ? _play : null,
+            child: _actionLabel(Icons.play_arrow_rounded, 'Play'),
+          ),
+          OutlinedButton(
+            style: _pastelButton(_blue),
+            onPressed: _playing ? _stop : null,
+            child: _actionLabel(Icons.stop_rounded, 'Stop'),
+          ),
         ),
       ],
     );
   }
 
-  Widget _aiControls(bool busy) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _aiControls(bool busy) => _ReaderCard(
+    title: 'Document AI',
+    icon: Icons.auto_awesome_outlined,
+    purpleHeading: true,
     children: [
-      if (!_canSpeak)
+      if (!_canSpeak) ...[
         _languagePicker(
           'Original language',
           _voice,
           busy ? null : (value) => setState(() => _voice = value!),
         ),
+        const SizedBox(height: 12),
+      ],
       _languagePicker(
-        'Translate to',
+        'Output language',
         _target,
         busy ? null : (value) => setState(() => _target = value!),
       ),
-      Wrap(
-        spacing: 8,
-        children: [
-          OutlinedButton(
-            onPressed: busy ? null : () => _runAi(DocumentAiAction.simplify),
-            child: const Text('Simplify'),
-          ),
-          OutlinedButton(
-            onPressed: busy ? null : () => _runAi(DocumentAiAction.translate),
-            child: const Text('Translate'),
-          ),
-        ],
-      ),
       const SizedBox(height: 12),
+      _actionPair(
+        OutlinedButton(
+          style: _pastelButton(_pink),
+          onPressed: busy ? null : () => _runAi(DocumentAiAction.simplify),
+          child: const Text('Simplify', textAlign: TextAlign.center),
+        ),
+        OutlinedButton(
+          style: _pastelButton(_green),
+          onPressed: busy ? null : () => _runAi(DocumentAiAction.translate),
+          child: const Text('Translate', textAlign: TextAlign.center),
+        ),
+      ),
+      const SizedBox(height: 16),
+      const Divider(),
+      const SizedBox(height: 8),
+      Semantics(
+        header: true,
+        child: Text(
+          'Ask a Question',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+      ),
+      const SizedBox(height: 10),
       TextField(
         controller: _question,
         enabled: !busy,
@@ -482,9 +629,14 @@ class _SmartDocumentReaderScreenState extends State<SmartDocumentReaderScreen> {
         onSubmitted: busy ? null : (_) => _runAi(DocumentAiAction.question),
         decoration: const InputDecoration(labelText: 'Ask about this document'),
       ),
-      FilledButton(
-        onPressed: busy ? null : () => _runAi(DocumentAiAction.question),
-        child: const Text('Ask question'),
+      const SizedBox(height: 4),
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          style: _buttonStyle,
+          onPressed: busy ? null : () => _runAi(DocumentAiAction.question),
+          child: const Text('Ask question', textAlign: TextAlign.center),
+        ),
       ),
     ],
   );
@@ -496,7 +648,9 @@ class _SmartDocumentReaderScreenState extends State<SmartDocumentReaderScreen> {
   ) => DropdownButtonFormField<String>(
     key: ValueKey((label, value)),
     initialValue: value,
-    decoration: InputDecoration(labelText: label),
+    isExpanded: true,
+    itemHeight: null,
+    decoration: _filterDecoration(label),
     items: [
       for (final language in _languages.entries)
         DropdownMenuItem(value: language.key, child: Text(language.value)),
@@ -504,18 +658,192 @@ class _SmartDocumentReaderScreenState extends State<SmartDocumentReaderScreen> {
     onChanged: onChanged,
   );
 
-  Widget _textCard(String label, String text) => Card(
-    color: AppTheme.surface,
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          SelectableText(text),
-        ],
+  Widget _textCard(
+    String label,
+    String text, {
+    required bool isAi,
+    Widget? action,
+  }) => _ReaderCard(
+    title: label,
+    icon: isAi ? Icons.auto_awesome_outlined : Icons.subject_rounded,
+    purpleHeading: isAi,
+    children: [
+      if (action != null) ...[action, const SizedBox(height: 4)],
+      SelectableText(
+        text,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
       ),
+    ],
+  );
+
+  ButtonStyle _pastelButton(({Color ink, Color tint}) colors) =>
+      _buttonStyle.copyWith(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.disabled) ? null : colors.tint,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled) ? null : colors.ink,
+        ),
+        side: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? null
+              : BorderSide(color: colors.ink.withValues(alpha: 0.24)),
+        ),
+      );
+
+  InputDecoration _filterDecoration(String label) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: AppTheme.border, width: 1.5),
+    );
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: AppTheme.background,
+      border: border,
+      enabledBorder: border,
+      disabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+      ),
+    );
+  }
+
+  Widget _actionPair(Widget first, Widget second) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 8),
+        Expanded(child: second),
+      ],
     ),
   );
+
+  Widget _actionLabel(IconData icon, String label) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 22),
+      const SizedBox(height: 5),
+      Text(label, textAlign: TextAlign.center),
+    ],
+  );
+}
+
+class _ReaderCard extends StatelessWidget {
+  const _ReaderCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+    this.iconColors = _purple,
+    this.purpleHeading = false,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+  final ({Color ink, Color tint}) iconColors;
+  final bool purpleHeading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: AppTheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppTheme.border, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: iconColors.tint,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(icon, color: iconColors.ink, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: purpleHeading
+                            ? AppTheme.primaryDark
+                            : AppTheme.textMain,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderStatus extends StatelessWidget {
+  const _ReaderStatus({required this.message, this.isError = false});
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = isError ? colors.onErrorContainer : _blue.ink;
+    return Semantics(
+      liveRegion: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isError ? colors.errorContainer : _blue.tint,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    isError ? Icons.error_outline : Icons.hourglass_top_rounded,
+                    color: foreground,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(message, style: TextStyle(color: foreground)),
+                  ),
+                ],
+              ),
+              if (!isError) ...[
+                const SizedBox(height: 10),
+                const LinearProgressIndicator(),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
