@@ -123,7 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _generalError = "Unable to sign in. Please try again.";
         }
       });
-      _showErrorFeedback();
     } catch (e) {
       if (!mounted) return;
       debugPrint("Login unexpected error: $e");
@@ -135,42 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _generalError = "An unexpected error occurred. Please try again.";
         }
       });
-      _showErrorFeedback();
-    }
-  }
-
-  void _showErrorFeedback() {
-    if (!mounted) return;
-    if (_isOfflineError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "No internet connection. Please connect and try again.",
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF1E1B2E),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    } else if (_generalError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_generalError!),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-      );
     }
   }
 
