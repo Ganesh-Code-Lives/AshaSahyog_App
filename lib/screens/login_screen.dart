@@ -20,14 +20,55 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _hasAttemptedSubmit = false;
-  String? _authError;
+  String? _fieldError;
+  String? _generalError;
+  bool _isOfflineError = false;
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_clearErrorsOnTyping);
+    _passwordController.addListener(_clearErrorsOnTyping);
+  }
+
+  void _clearErrorsOnTyping() {
+    if (_isOfflineError || _fieldError != null || _generalError != null) {
+      setState(() {
+        _isOfflineError = false;
+        _fieldError = null;
+        _generalError = null;
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    _emailController.removeListener(_clearErrorsOnTyping);
+    _passwordController.removeListener(_clearErrorsOnTyping);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  bool _isNetworkFailure(dynamic error) {
+    final str = error.toString().toLowerCase();
+    return str.contains('socketexception') ||
+        str.contains('clientexception') ||
+        str.contains('failed to fetch') ||
+        str.contains('failed host lookup') ||
+        str.contains('connection abort') ||
+        str.contains('network is unreachable') ||
+        str.contains('connection refused') ||
+        str.contains('connection reset') ||
+        str.contains('no address associated') ||
+        str.contains('software caused connection') ||
+        str.contains('authretryablefetchexception') ||
+        str.contains('network error') ||
+        str.contains('offline') ||
+        str.contains('errno = 101') ||
+        str.contains('errno = 111') ||
+        str.contains('errno = 7');
   }
 
   Future<void> _handleLogin() async {
@@ -36,7 +77,11 @@ class _LoginScreenState extends State<LoginScreen> {
       hiMessage: 'लॉग इन किया जा रहा है',
       mrMessage: 'लॉग इन करत आहे',
     );
-    setState(() => _authError = null);
+    setState(() {
+      _isOfflineError = false;
+      _fieldError = null;
+      _generalError = null;
+    });
     if (!_formKey.currentState!.validate()) {
       setState(() => _hasAttemptedSubmit = true);
       return;
@@ -58,34 +103,37 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on AuthException catch (e) {
       if (!mounted) return;
+      debugPrint("Login AuthException: ${e.statusCode} - ${e.message}");
       setState(() {
-        if (e.message.toLowerCase().contains("invalid login credentials")) {
-          _authError = "Invalid email or password";
-        } else {
-          _authError = e.message;
-        }
         _isLoading = false;
+        final msg = e.message.toLowerCase();
+        if (_isNetworkFailure(e.message) || _isNetworkFailure(e)) {
+          _isOfflineError = true;
+        } else if (msg.contains("invalid login credentials") ||
+            msg.contains("invalid_credentials") ||
+            msg.contains("invalid username or password")) {
+          _fieldError = "Invalid email or password";
+        } else if (msg.contains("email not confirmed") ||
+            msg.contains("not confirmed")) {
+          _generalError = "Please verify your email address before logging in.";
+        } else if (msg.contains("too many requests") ||
+            msg.contains("rate limit")) {
+          _generalError = "Too many attempts. Please wait a few minutes.";
+        } else {
+          _generalError = "Unable to sign in. Please try again.";
+        }
       });
     } catch (e) {
       if (!mounted) return;
-      debugPrint("Login error: $e");
-      
-      final errorStr = e.toString();
+      debugPrint("Login unexpected error: $e");
       setState(() {
         _isLoading = false;
-        if (errorStr.contains('SocketException') || errorStr.contains('ClientException') || errorStr.contains('Failed host lookup') || errorStr.contains('Software caused connection abort')) {
-          _authError = "Network error. Check your internet connection.";
+        if (_isNetworkFailure(e)) {
+          _isOfflineError = true;
         } else {
-          _authError = "An unexpected error occurred";
+          _generalError = "An unexpected error occurred. Please try again.";
         }
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_authError ?? "Login failed"),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -326,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             icon: Icons.lock_outline_rounded,
                             obscureText: _obscurePassword,
                             isPassword: true,
-                            errorText: _authError,
+                            errorText: _fieldError,
                             validator: (val) {
                               if (val == null || val.isEmpty) return 'Please enter your password';
                               return null;
@@ -349,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 32),
+                    _buildErrorBanner(),
                     
                     // Rich Purple Gradient Button
                     Container(
@@ -442,6 +490,154 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildErrorBanner() {
+    if (_isOfflineError) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7FF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6C3CC9).withAlpha(15),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const RadialGradient(
+                  colors: [Color(0xFFEDE9FE), Color(0xFFF5F3FF)],
+                  radius: 0.85,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFF6C3CC9),
+                    size: 22,
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        "You're offline",
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2D2A3A),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE9FE),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "No Internet",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6C3CC9),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    "Turn on Wi-Fi or mobile data to sign in to AshaSahyog.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_generalError != null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFECDD3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                color: Color(0xFFE11D48),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _generalError!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF9F1239),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox(height: 28);
   }
 
   Widget _buildTextField({

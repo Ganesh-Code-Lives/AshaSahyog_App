@@ -552,15 +552,15 @@ class _SchemesFinderState extends State<SchemesFinder> {
   Widget _buildError() {
     final offline = _isOfflineError;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // ── Illustrated icon bubble ──────────────
             Container(
-              width: 120,
-              height: 120,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   colors: [
@@ -583,9 +583,9 @@ class _SchemesFinderState extends State<SchemesFinder> {
                 boxShadow: [
                   BoxShadow(
                     color: (offline ? _purple : const Color(0xFFEF4444))
-                        .withAlpha(25),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+                        .withAlpha(20),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -594,8 +594,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
                 children: [
                   // faint decorative ring
                   Container(
-                    width: 88,
-                    height: 88,
+                    width: 58,
+                    height: 58,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
@@ -611,16 +611,16 @@ class _SchemesFinderState extends State<SchemesFinder> {
                     offline
                         ? Icons.wifi_off_rounded
                         : Icons.cloud_off_rounded,
-                    size: 48,
+                    size: 34,
                     color: offline ? _purple : const Color(0xFFEF4444),
                   ),
                   // small badge dot at top-right
                   Positioned(
-                    top: 18,
-                    right: 18,
+                    top: 10,
+                    right: 10,
                     child: Container(
-                      width: 18,
-                      height: 18,
+                      width: 14,
+                      height: 14,
                       decoration: BoxDecoration(
                         color:
                             offline ? const Color(0xFFF59E0B) : const Color(0xFFEF4444),
@@ -628,13 +628,13 @@ class _SchemesFinderState extends State<SchemesFinder> {
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: const Icon(Icons.priority_high_rounded,
-                          color: Colors.white, size: 10),
+                          color: Colors.white, size: 8),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // ── Title ──────────────────────────────────
             Text(
@@ -643,13 +643,13 @@ class _SchemesFinderState extends State<SchemesFinder> {
                   : AppStrings.t(context, 'error_loading_schemes',
                       'Could not load schemes'),
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: _textMain,
                 letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
 
             // ── Subtitle ───────────────────────────────
             Text(
@@ -658,19 +658,18 @@ class _SchemesFinderState extends State<SchemesFinder> {
                   : 'Something went wrong while loading\nschemes. Please try again.',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: _textSub,
-                height: 1.55,
+                height: 1.45,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
             // ── Pill hint ──────────────────────────────
             if (offline) ...[
               Container(
-                margin: const EdgeInsets.only(top: 4, bottom: 4),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F3FF),
                   borderRadius: BorderRadius.circular(100),
@@ -685,7 +684,7 @@ class _SchemesFinderState extends State<SchemesFinder> {
                     Text(
                       'No internet connection',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: _purple,
                       ),
@@ -693,8 +692,10 @@ class _SchemesFinderState extends State<SchemesFinder> {
                   ],
                 ),
               ),
+              const SizedBox(height: 18),
+            ] else ...[
+              const SizedBox(height: 14),
             ],
-            const SizedBox(height: 28),
 
             // ── Try Again button ───────────────────────
             SizedBox(
@@ -702,18 +703,18 @@ class _SchemesFinderState extends State<SchemesFinder> {
               child: GestureDetector(
                 onTap: _loadSchemes,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                         colors: [_purple, _purpleMid],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: _purple.withAlpha(60),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: _purple.withAlpha(50),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -721,14 +722,14 @@ class _SchemesFinderState extends State<SchemesFinder> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.refresh_rounded,
-                          color: Colors.white, size: 18),
+                          color: Colors.white, size: 17),
                       const SizedBox(width: 8),
                       Text(
                         AppStrings.t(context, 'try_again', 'Try again'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -736,20 +737,6 @@ class _SchemesFinderState extends State<SchemesFinder> {
                 ),
               ),
             ),
-
-            // ── secondary hint ─────────────────────────
-            if (offline) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Turn on Wi-Fi or mobile data\nand tap Try again.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _textSub.withAlpha(160),
-                  height: 1.6,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -759,8 +746,8 @@ class _SchemesFinderState extends State<SchemesFinder> {
   // ── Empty state ───────────────────────────────
   Widget _buildEmpty() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
