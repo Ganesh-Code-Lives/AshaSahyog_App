@@ -33,6 +33,15 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Supabase deep-link: handles password-reset and magic-link callbacks -->
+            <intent-filter android:label="Asha Sahyog Auth">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="io.supabase.ashasahyog"
+                    android:host="login-callback"/>
+            </intent-filter>
         </activity>
         
         <!-- UCrop Activity for image_cropper -->

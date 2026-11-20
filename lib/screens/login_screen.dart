@@ -164,10 +164,40 @@ class _LoginScreenState extends State<LoginScreen> {
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
                             if (mounted) {
+                              final errStr = e.toString();
+                              String userMsg;
+                              if (errStr.contains('statusCode: 500') ||
+                                  errStr.contains('unexpected_failure') ||
+                                  errStr.contains('sending recovery email')) {
+                                userMsg =
+                                    'Email service is temporarily unavailable. '
+                                    'Please try again later or contact support.';
+                              } else if (errStr.contains('400') ||
+                                  errStr.contains('User not found') ||
+                                  errStr.contains('unable to find user')) {
+                                userMsg =
+                                    'No account found with this email address. '
+                                    'Please check and try again.';
+                              } else if (errStr.contains('429') ||
+                                  errStr.contains('rate limit') ||
+                                  errStr.contains('too many requests')) {
+                                userMsg =
+                                    'Too many requests. Please wait a few minutes and try again.';
+                              } else if (errStr.contains('SocketException') ||
+                                  errStr.contains('ClientException') ||
+                                  errStr.contains('Failed host lookup')) {
+                                userMsg =
+                                    'Network error. Please check your internet connection.';
+                              } else {
+                                userMsg =
+                                    'Could not send reset link. Please try again later.';
+                              }
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Failed: ${e.toString().replaceAll("Exception: ", "")}'),
-                                  backgroundColor: Colors.red,
+                                  content: Text(userMsg),
+                                  backgroundColor: Colors.red.shade700,
+                                  duration: const Duration(seconds: 5),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }

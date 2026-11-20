@@ -51,10 +51,18 @@ class AuthService {
   }
 
   Future<void> resetPasswordForEmail(String email) async {
+    // redirectTo must match a URL added in Supabase Dashboard →
+    // Authentication → URL Configuration → Redirect URLs.
+    // The deep-link scheme below (io.supabase.ashasahyog://login-callback/)
+    // must also be registered in AndroidManifest.xml / Info.plist.
+    const redirectTo = 'io.supabase.ashasahyog://login-callback/';
     try {
-      await supabase.auth.resetPasswordForEmail(email);
+      await supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: redirectTo,
+      );
     } on AuthException catch (e) {
-      debugPrint("Supabase Password Reset Exception: ${e.message}");
+      debugPrint("Supabase Password Reset Exception: ${e.statusCode} – ${e.message}");
       rethrow;
     } catch (e) {
       debugPrint("General Password Reset Exception: $e");
