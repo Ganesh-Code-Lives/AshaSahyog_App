@@ -20,7 +20,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _isFormValid = false;
-  String? _authError;
+  String? _fieldError;
+  String? _generalError;
+  bool _isOfflineError = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -64,7 +66,32 @@ class _SignupScreenState extends State<SignupScreen> {
       _isFormValid = _validateEmail(_emailController.text) == null &&
                      _validatePassword(_passwordController.text) == null &&
                      _validateConfirm(_confirmPasswordController.text) == null;
+      if (_isOfflineError || _fieldError != null || _generalError != null) {
+        _isOfflineError = false;
+        _fieldError = null;
+        _generalError = null;
+      }
     });
+  }
+
+  bool _isNetworkFailure(dynamic error) {
+    final str = error.toString().toLowerCase();
+    return str.contains('socketexception') ||
+        str.contains('clientexception') ||
+        str.contains('failed to fetch') ||
+        str.contains('failed host lookup') ||
+        str.contains('connection abort') ||
+        str.contains('network is unreachable') ||
+        str.contains('connection refused') ||
+        str.contains('connection reset') ||
+        str.contains('no address associated') ||
+        str.contains('software caused connection') ||
+        str.contains('authretryablefetchexception') ||
+        str.contains('network error') ||
+        str.contains('offline') ||
+        str.contains('errno = 101') ||
+        str.contains('errno = 111') ||
+        str.contains('errno = 7');
   }
 
   Future<void> _handleSignup() async {
@@ -76,7 +103,13 @@ class _SignupScreenState extends State<SignupScreen> {
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isOfflineError = false;
+      _fieldError = null;
+      _generalError = null;
+    });
+
     try {
       final authResponse = await _authService.signUp(email, password);
       
@@ -98,19 +131,70 @@ class _SignupScreenState extends State<SignupScreen> {
         (route) => false,
       );
     } on AuthException catch (e) {
+      if (!mounted) return;
+      debugPrint("Signup AuthException: ${e.statusCode} - ${e.message}");
       setState(() {
-        _authError = e.message;
         _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        if (e.toString().contains('SocketException') || e.toString().contains('ClientException') || e.toString().contains('Failed host lookup')) {
-          _authError = "Network error. Please try again.";
+        final msg = e.message.toLowerCase();
+        if (_isNetworkFailure(e.message) || _isNetworkFailure(e)) {
+          _isOfflineError = true;
+        } else if (msg.contains("user already registered") ||
+            msg.contains("already exists")) {
+          _fieldError = "An account with this email already exists.";
+        } else if (msg.contains("password")) {
+          _fieldError = e.message;
         } else {
-          _authError = "An unexpected error occurred";
+          _generalError = "Unable to create account. Please try again.";
         }
-        _isLoading = false;
       });
+      _showErrorFeedback();
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint("Signup unexpected error: $e");
+      setState(() {
+        _isLoading = false;
+        if (_isNetworkFailure(e)) {
+          _isOfflineError = true;
+        } else {
+          _generalError = "An unexpected error occurred. Please try again.";
+        }
+      });
+      _showErrorFeedback();
+    }
+  }
+
+  void _showErrorFeedback() {
+    if (!mounted) return;
+    if (_isOfflineError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "No internet connection. Please connect and try again.",
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1E1B2E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else if (_generalError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_generalError!),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
     }
   }
 
@@ -241,7 +325,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             onVisibilityToggle: () {
                               setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
                             },
-                            errorText: _authError,
+                            errorText: _fieldError,
                             validator: (val) {
                               if (val == null || val.isEmpty) return null;
                               return _validateConfirm(val);
@@ -251,7 +335,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 32),
+                    _buildErrorBanner(),
                     
                     // Rich Purple Gradient Button
                     Container(
@@ -342,6 +426,154 @@ class _SignupScreenState extends State<SignupScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildErrorBanner() {
+    if (_isOfflineError) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7FF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6C3CC9).withAlpha(15),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const RadialGradient(
+                  colors: [Color(0xFFEDE9FE), Color(0xFFF5F3FF)],
+                  radius: 0.85,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFF6C3CC9),
+                    size: 22,
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        "You're offline",
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2D2A3A),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE9FE),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "No Internet",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6C3CC9),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    "Turn on Wi-Fi or mobile data to create your account.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_generalError != null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFECDD3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                color: Color(0xFFE11D48),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _generalError!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF9F1239),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox(height: 28);
   }
 
   Widget _buildTextField({
