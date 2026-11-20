@@ -1,187 +1,68 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../assistant/models/chat_message.dart';
 
 class AshaAssistantService {
-  // Singleton pattern
   static final AshaAssistantService _instance = AshaAssistantService._internal();
   factory AshaAssistantService() => _instance;
   AshaAssistantService._internal();
 
-  static const String _geminiEnvKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-    defaultValue: '',
-  );
+  static const _cloudPreference = 'assistant_cloud_enabled';
 
-  static const String _prefKeyGemini = 'custom_gemini_api_key';
-  static const String _defaultModel = 'gemini-1.5-flash';
-
-  /// Returns the currently active Gemini API key (from SharedPreferences or --dart-define).
-  Future<String> getActiveApiKey() async {
+  Future<void> removeLegacyApiKey() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final customKey = prefs.getString(_prefKeyGemini)?.trim() ?? '';
-      if (customKey.isNotEmpty) return customKey;
-    } catch (e) {
-      debugPrint('Error reading SharedPreferences for Gemini key: $e');
+      if (prefs.containsKey('custom_gemini_api_key')) {
+        await prefs.remove('custom_gemini_api_key');
+      }
+    } catch (_) {
+      // Preferences may be unavailable on initial launch.
     }
-    return _geminiEnvKey.trim();
   }
 
-  /// Allows the user or developer to set a custom Gemini API key at runtime.
-  Future<void> setCustomApiKey(String key) async {
+  Future<bool> isCloudEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefKeyGemini, key.trim());
+    return prefs.getBool(_cloudPreference) ?? false;
   }
 
-  /// Clears any runtime-saved Gemini API key.
-  Future<void> clearCustomApiKey() async {
+  Future<void> setCloudEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_prefKeyGemini);
+    await prefs.setBool(_cloudPreference, enabled);
   }
 
-  /// Whether Gemini AI has an active API key configured.
-  Future<bool> isAiConfigured() async {
-    final key = await getActiveApiKey();
-    return key.isNotEmpty;
-  }
-
-  /// Returns an intelligent assistant response, using Google Gemini AI if configured,
-  /// with automatic fallback to the local knowledge engine on error or when offline.
   Future<ChatMessage> getResponse(
     String userMessage, {
     List<ChatMessage> conversationHistory = const [],
   }) async {
-    final apiKey = await getActiveApiKey();
-
-    if (apiKey.isNotEmpty) {
-      try {
-        final geminiResponse = await _callGeminiApi(
-          userMessage: userMessage,
-          apiKey: apiKey,
-          history: conversationHistory,
-        );
-        if (geminiResponse != null) {
-          return geminiResponse;
+    try {
+      if (await isCloudEnabled()) {
+        final client = Supabase.instance.client;
+        if (client.auth.currentSession != null) {
+          final recent = conversationHistory.reversed.take(6).toList().reversed;
+          final response = await client.functions
+              .invoke('asha-assistant', body: {
+                'message': userMessage,
+                'history': [
+                  for (final turn in recent)
+                    {'role': turn.isUser ? 'user' : 'model', 'text': turn.text},
+                ],
+              })
+              .timeout(const Duration(seconds: 15));
+          final body = response.data;
+          final text = body is Map ? body['text'] : null;
+          if (text is String && text.trim().isNotEmpty) {
+            return _parseResponseWithAction(text, userMessage);
+          }
         }
-      } catch (e) {
-        debugPrint('Gemini API call failed, falling back to local engine: $e');
       }
+    } catch (_) {
+      // The built-in assistant remains available when cloud AI fails.
     }
 
-    // Local Intelligent Knowledge Engine fallback
     return _generateLocalResponse(userMessage);
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  //  GEMINI API CALL
-  // ──────────────────────────────────────────────────────────────────────────
-  Future<ChatMessage?> _callGeminiApi({
-    required String userMessage,
-    required String apiKey,
-    required List<ChatMessage> history,
-  }) async {
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$_defaultModel:generateContent?key=$apiKey',
-    );
-
-    const systemPrompt = '''
-You are Asha, the warm, empathetic, and expert AI assistant inside the AshaSahyog mobile application.
-AshaSahyog is an accessible welfare & assistance platform designed for Divyangjan (Persons with Disabilities / PwD) in India and their caregivers.
-
-Your core expertise:
-1. Government welfare schemes in India: UDID (Unique Disability ID), ADIP Scheme (aids & appliances like wheelchairs, tricycles, hearing aids), Disability Pensions, National Handicapped Finance (NHFDC), scholarships for PwD, railway & bus travel concessions, and DDRS.
-2. Healthcare: Finding nearby accessible hospitals, clinics, and doctors.
-3. Organization & Care: Setting medication/checkup reminders and securely storing certificates in the Document Vault.
-4. Safety: Emergency SOS assistance with GPS coordinates for urgent help.
-
-Guidelines:
-- Match the user's language (English, Hindi, or Marathi).
-- Be polite, concise, encouraging, and clear. Avoid overly dense walls of text; use bullet points for lists.
-- If the query directly relates to an in-app feature, suggest an action by appending this EXACT tag at the very end of your response on its own line:
-  [[ACTION:route:Button Label]]
-
-Valid routes and recommended labels:
-- [[ACTION:hospitals:Open Hospital Locator]] (for hospitals, clinics, doctors, medical facilities)
-- [[ACTION:schemes:Explore Schemes]] (for government welfare schemes, benefits, grants)
-- [[ACTION:recommendations:Check Scheme Eligibility]] (for personalized scheme recommendations)
-- [[ACTION:reminders:Set a Reminder]] (for medicine timings, doctor appointments, alarms)
-- [[ACTION:documents:Open Document Vault]] (for UDID card, disability certificates, documents)
-- [[ACTION:sos:Emergency SOS]] (for emergencies, distress, urgent medical help)
-- [[ACTION:profile:View Profile]] (for updating disability category, percentage, or income)
-- [[ACTION:support:Contact Support]] (for customer helpline or contact)
-
-Never output more than ONE [[ACTION:...]] tag.
-''';
-
-    // Build multi-turn contents from recent history (last 6 messages max)
-    final List<Map<String, dynamic>> contents = [];
-
-    final recentHistory = history.length > 6
-        ? history.sublist(history.length - 6)
-        : history;
-
-    for (final msg in recentHistory) {
-      contents.add({
-        'role': msg.isUser ? 'user' : 'model',
-        'parts': [
-          {'text': msg.text}
-        ],
-      });
-    }
-
-    // Add current user message
-    contents.add({
-      'role': 'user',
-      'parts': [
-        {'text': userMessage}
-      ],
-    });
-
-    final body = {
-      'system_instruction': {
-        'parts': [
-          {'text': systemPrompt}
-        ]
-      },
-      'contents': contents,
-      'generationConfig': {
-        'temperature': 0.7,
-        'maxOutputTokens': 800,
-      },
-    };
-
-    final response = await http
-        .post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 15));
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final candidates = data['candidates'] as List?;
-      if (candidates != null && candidates.isNotEmpty) {
-        final content = candidates[0]['content'];
-        final parts = content?['parts'] as List?;
-        if (parts != null && parts.isNotEmpty) {
-          final rawText = parts[0]['text'] as String? ?? '';
-          return _parseResponseWithAction(rawText, userMessage);
-        }
-      }
-    } else {
-      debugPrint('Gemini API Error: Status ${response.statusCode} - ${response.body}');
-    }
-
-    return null;
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  //  RESPONSE PARSER & ACTION EXTRACTOR
-  // ──────────────────────────────────────────────────────────────────────────
   ChatMessage _parseResponseWithAction(String rawText, String userMessage) {
     String cleanText = rawText.trim();
     String? actionRoute;

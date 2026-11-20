@@ -56,15 +56,22 @@ void main() {
       expect(response.actionRoute, 'hospitals');
     });
 
-    test('supports setting and clearing custom Gemini API key', () async {
-      expect(await service.isAiConfigured(), isFalse);
+    test('cloud AI is opt-in and can be disabled', () async {
+      expect(await service.isCloudEnabled(), isFalse);
+      await service.setCloudEnabled(true);
+      expect(await service.isCloudEnabled(), isTrue);
+      await service.setCloudEnabled(false);
+      expect(await service.isCloudEnabled(), isFalse);
+    });
 
-      await service.setCustomApiKey('test_gemini_key_123');
-      expect(await service.isAiConfigured(), isTrue);
-      expect(await service.getActiveApiKey(), 'test_gemini_key_123');
-
-      await service.clearCustomApiKey();
-      expect(await service.isAiConfigured(), isFalse);
+    test('removes the legacy key without enabling cloud AI', () async {
+      SharedPreferences.setMockInitialValues({
+        'custom_gemini_api_key': 'old-key',
+      });
+      await service.removeLegacyApiKey();
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('custom_gemini_api_key'), isFalse);
+      expect(await service.isCloudEnabled(), isFalse);
     });
   });
 }

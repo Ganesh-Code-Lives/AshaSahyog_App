@@ -1,0 +1,7 @@
+project_id = "asha-sahyog"
+
+[functions.document-reader]
+verify_jwt = false
+
+[functions.asha-assistant]
+verify_jwt = false

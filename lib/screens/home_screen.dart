@@ -7,6 +7,7 @@ import '../components/bottom_nav.dart';
 import 'schemes_finder.dart';
 import 'hospital_locator.dart';
 import 'document_vault.dart';
+import 'smart_document_reader_screen.dart';
 import 'reminders.dart';
 import 'profile.dart';
 import 'support.dart';
@@ -492,7 +493,160 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 14),
           Expanded(child: _actionCard(actions[3])),
         ]),
+        const SizedBox(height: 14),
+        _buildSmartDocumentReaderCard(),
       ],
+    );
+  }
+
+  Widget _buildSmartDocumentReaderCard() {
+    const title = 'Smart Document Reader';
+    const subtitle = 'Scan, listen & understand documents';
+    final radius = BorderRadius.circular(22);
+
+    return Semantics(
+      button: true,
+      label: '$title. $subtitle. New.',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x267C3AED),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF5B21B6), _purple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              image: DecorationImage(
+                image: AssetImage('assets/images/leaf_purple.png'),
+                alignment: Alignment.bottomRight,
+                scale: 2,
+                opacity: 0.16,
+              ),
+            ),
+            child: InkWell(
+              borderRadius: radius,
+              onTap: () {
+                TTSService().speakFeedback(
+                  'Opening Smart Document Reader',
+                  hiMessage: 'स्मार्ट दस्तावेज़ रीडर खोला जा रहा है',
+                  mrMessage: 'स्मार्ट दस्तऐवज वाचक उघडत आहे',
+                  langCode: context.read<LanguageProvider>().langCode,
+                );
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SmartDocumentReaderScreen(),
+                  ),
+                );
+              },
+              child: ExcludeSemantics(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 112),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 30, 14, 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: const Color(0x24FFFFFF),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.document_scanner_rounded,
+                                    color: Colors.white,
+                                    size: 23,
+                                  ),
+                                  SizedBox(width: 3),
+                                  Icon(
+                                    Icons.volume_up_rounded,
+                                    color: Colors.white,
+                                    size: 17,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      height: 1.2,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(height: 3),
+                                  Text(
+                                    subtitle,
+                                    style: TextStyle(
+                                      color: Color(0xFFF5EDFF),
+                                      fontSize: 13,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 10,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: _purpleLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            child: Text(
+                              'New',
+                              textScaler: TextScaler.noScaling,
+                              style: TextStyle(
+                                color: Color(0xFF5B21B6),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
